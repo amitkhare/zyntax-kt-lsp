@@ -76,6 +76,7 @@ and [version catalog](https://github.com/JetBrains/kotlin/blob/v2.2.21/gradle/li
 | JLine 3.24.1 | BSD-3-Clause; `licenses/jline.txt` |
 | StAX2 API 4.2.1 | BSD-2-Clause; `licenses/stax2-api.txt` and `stax2-BSD-2-Clause.txt` |
 | JetBrains JDOM 2.0.6 | JDOM license (permissive, with naming restrictions); `licenses/jdom.txt`; exact source artifact below |
+| PicoContainer interfaces embedded in IntelliJ core 241.19416.19 | BSD-3-Clause; Copyright PicoContainer Organization; `licenses/picocontainer.txt`; exact embedded-source provenance below |
 | Protocol Buffers 2.6.1 (relocated) | BSD-3-Clause; `licenses/protobuf.txt`; [upstream source](https://github.com/protocolbuffers/protobuf/tree/v2.6.1) |
 | Native LZ4 code included by LZ4 Java 1.7.1 | BSD-2-Clause; `licenses/lz4-native.txt`; [pinned native source](https://github.com/lz4/lz4/tree/fdf2ef5809ca875c454510610764d9125ef2ebbd) |
 | Rhino-derived GWT parser | NPL-1.1 option; `licenses/kotlin/third_party/rhino_LICENSE.txt` and source-access statement above |
@@ -107,6 +108,15 @@ duplication as the final runtime layout.
 - StAX2's notice specifies BSD-2-Clause and the FasterXML copyright; the full
   BSD-2-Clause terms are supplied separately. LZ4's native notice comes from
   the exact `src/lz4` submodule commit pinned by LZ4 Java `1.7.1`.
+- PicoContainer's `ComponentAdapter.java` and `PicoContainer.java` are in
+  [`com.jetbrains.intellij.platform:extensions:241.19416.19:sources`](https://www.jetbrains.com/intellij-repository/releases/com/jetbrains/intellij/platform/extensions/241.19416.19/extensions-241.19416.19-sources.jar);
+  `MutablePicoContainer.java` is in
+  [`com.jetbrains.intellij.platform:core-impl:241.19416.19:sources`](https://www.jetbrains.com/intellij-repository/releases/com/jetbrains/intellij/platform/core-impl/241.19416.19/core-impl-241.19416.19-sources.jar).
+  All three `org/picocontainer/` headers retain the PicoContainer Organization
+  copyright and BSD license reference. The full terms in `licenses/picocontainer.txt`
+  come from the matching original [PicoContainer1 license](https://github.com/picocontainer/PicoContainer1/blob/4eec388d926a0c98277a88d60ea6cdebc07bde7f/LICENSE.txt),
+  with trailing whitespace removed. These interfaces are embedded code, not a
+  separately shipped PicoContainer release.
 
 The vendor artifacts used for that provenance check are identified by SHA-256:
 
