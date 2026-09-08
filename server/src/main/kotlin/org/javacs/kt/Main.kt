@@ -2,11 +2,13 @@ package org.javacs.kt
 
 import com.beust.jcommander.JCommander
 import com.beust.jcommander.Parameter
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import org.eclipse.lsp4j.launch.LSPLauncher
-import org.javacs.kt.util.ExitingInputStream
+import org.javacs.kt.util.AsyncExecutor
 import org.javacs.kt.util.tcpStartServer
 import org.javacs.kt.util.tcpConnectToClient
+import kotlin.system.exitProcess
 
 class Args {
     /*
@@ -56,10 +58,37 @@ fun main(argv: Array<String>) {
         Pair(System.`in`, System.out)
     }
 
-    val server = KotlinLanguageServer()
-    val threads = Executors.newSingleThreadExecutor { Thread(it, "client") }
-    val launcher = LSPLauncher.createServerLauncher(server, ExitingInputStream(inStream), outStream, threads) { it }
-
-    server.connect(launcher.remoteProxy)
-    launcher.startListening()
+    val exitCode = try {
+        KotlinLanguageServer().use { server ->
+            val threads = Executors.newSingleThreadExecutor { Thread(it, "client") }
+            try {
+                val launcher = LSPLauncher.createServerLauncher(server, inStream, outStream, threads) { it }
+                server.connect(launcher.remoteProxy)
+                val listening = launcher.startListening()
+                val transportEnded = CompletableFuture<Int>()
+                Thread.startVirtualThread {
+                    try {
+                        listening.get()
+                        transportEnded.complete(1)
+                    } catch (error: Exception) {
+                        transportEnded.completeExceptionally(error)
+                    }
+                }
+                try {
+                    server.exitStatus.applyToEither(transportEnded) { it }.get()
+                } finally {
+                    listening.cancel(true)
+                }
+            } finally {
+                threads.shutdownNow()
+            }
+        }
+    } catch (error: Exception) {
+        error.printStackTrace(System.err)
+        1
+    } finally {
+        AsyncExecutor.shutdown(false)
+        LOG.shutdown()
+    }
+    exitProcess(exitCode)
 }

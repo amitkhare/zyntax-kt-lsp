@@ -54,7 +54,7 @@ The logic for classpath resolution is in `org/javacs/kt/classpath`. The `ClassPa
 |ShellClassPathResolver|For custom scripts|Looks for `kls-classpath` or `kotlinLspClasspath` (executable) in project or `~/.config/kotlin-language-server/`. Outputs classpath entries on stdout.|
 |WithStdlibResolver|Wrapper|Ensures Kotlin stdlib is on the classpath. Picks the newest version if multiple exist.|
 |BackupClassPathResolver|Fallback|Finds Kotlin stdlib from `kotlinc` lib directory, Maven local repo, or Gradle caches. Used when no build file is found.|
-|CachedClassPathResolver|Caching layer|Stores resolved classpaths in `.kls/kls_database.db` (default) or custom path via `--storagePath`, avoiding re-resolution on every request.|
+|CachedClassPathResolver|Caching layer|Stores independently fingerprinted classpaths in the workspace's `.kls/kls_database.db`, avoiding re-resolution on every request.|
 
 Here's **how they combine**:
 
@@ -69,7 +69,7 @@ Here's **how they combine**:
 
 ## `:platform`
 
-The platform module is a Gradle Java platform -- similar to a Maven BOM (also Bill of Materials) -- that centralizes all dependency versions for the project. It defines which versions of Kotlin, LSP4J, Exposed, H2, and other libraries everyone should use.
+The platform module is a Gradle Java platform -- similar to a Maven BOM (also Bill of Materials) -- that centralizes all dependency versions for the project. It defines which versions of Kotlin, LSP4J, Exposed, SQLite JDBC, and other libraries everyone should use.
 
 ### Why it exists
 
@@ -100,7 +100,7 @@ The platform module declares constraints for:
 - Kotlin compiler and libraries
 - LSP4J
 - Exposed (SQL)
-- H2 database
+- SQLite JDBC
 - ktfmt
 - And others...
 

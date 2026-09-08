@@ -22,7 +22,6 @@ dependencies {
         api(libs.org.jetbrains.exposed.core)
         api(libs.org.jetbrains.exposed.dao)
         api(libs.org.jetbrains.exposed.jdbc)
-        api(libs.com.h2database.h2)
         api(libs.com.google.guava.guava)
         api(libs.com.github.fwcd.ktfmt)
         api(libs.com.beust.jcommander)

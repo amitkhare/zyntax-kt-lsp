@@ -33,15 +33,8 @@ class JarIndexEntity(id: EntityID<Int>) : IntEntity(id) {
 class JarIndex(private val databaseService: DatabaseService) {
 
     fun setup() {
-        databaseService.db?.let { database ->
-            try {
-                transaction(database) {
-                    SchemaUtils.create(JarIndexTable)
-                    LOG.info("JarIndex table created")
-                }
-            } catch (e: Exception) {
-                LOG.warn("Failed to create JarIndex table: {}", e.message)
-            }
+        transaction(checkNotNull(databaseService.db) { "Database is not initialized" }) {
+            SchemaUtils.create(JarIndexTable)
         }
     }
 

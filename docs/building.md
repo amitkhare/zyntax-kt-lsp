@@ -16,6 +16,11 @@ If you just want to build the language server and use its binaries in your clien
 
 The language server executable is now located under `server/build/install/server/bin/kotlin-language-server`. (Depending on your language client, you might want to add it to your `PATH`)
 
+Server distributions include the root MIT license. Before redistribution, review the
+resolved runtime's dependency licenses and preserve their notices; the inherited
+`licenseReport.html` is not yet a complete distribution audit. See the
+[Android readiness track](android-readiness.md).
+
 Note that there are external dependent libraries, so if you want to put the server somewhere else, you have to move the entire `install`-directory.
 
 ### Packaging

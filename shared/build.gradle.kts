@@ -18,7 +18,8 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation(libs.org.jetbrains.exposed.core)
     implementation(libs.org.jetbrains.exposed.dao)
-    implementation(libs.com.h2database.h2)
+    implementation(libs.org.jetbrains.exposed.jdbc)
+    runtimeOnly(libs.org.xerial.sqlite.jdbc)
 
     implementation(libs.com.dynatrace.hash4j.hash4j)
 
@@ -27,6 +28,4 @@ dependencies {
 
     testImplementation(libs.hamcrest.all)
     testImplementation(libs.junit.junit)
-    testImplementation(libs.org.jetbrains.exposed.jdbc)
-    testImplementation(libs.org.xerial.sqlite.jdbc)
 }

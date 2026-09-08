@@ -64,6 +64,7 @@ import org.jetbrains.kotlin.util.KotlinFrontEndException
 
 import java.io.Closeable
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.locks.ReentrantLock
@@ -71,6 +72,37 @@ import java.util.concurrent.locks.ReentrantLock
 
 import kotlin.concurrent.withLock
 import kotlin.script.experimental.jvm.defaultJvmScriptingHostConfiguration
+
+internal data class CompilerSettings(
+    val languageVersionSettings: LanguageVersionSettingsImpl,
+    val jvmTarget: JvmTarget
+) {
+    fun applyTo(configuration: KotlinCompilerConfiguration) {
+        configuration.put(CommonConfigurationKeys.LANGUAGE_VERSION_SETTINGS, languageVersionSettings)
+        configuration.put(JVMConfigurationKeys.JVM_TARGET, jvmTarget)
+    }
+}
+
+internal fun CompilerConfiguration.resolve(): CompilerSettings {
+    val language = requireNotNull(LanguageVersion.fromVersionString(languageVersion)) {
+        "Unsupported compiler.languageVersion: $languageVersion"
+    }
+    require(language.isStable && !language.isUnsupported) {
+        "Unsupported compiler.languageVersion: $languageVersion"
+    }
+    val apiLanguage = requireNotNull(LanguageVersion.fromVersionString(apiVersion ?: language.versionString)) {
+        "Unsupported compiler.apiVersion: $apiVersion"
+    }
+    val api = ApiVersion.createByLanguageVersion(apiLanguage)
+    require(api.isStable && !api.isUnsupported) { "Unsupported compiler.apiVersion: $apiVersion" }
+    require(api <= ApiVersion.createByLanguageVersion(language)) {
+        "compiler.apiVersion must not exceed compiler.languageVersion"
+    }
+    val target = if (jvm.target == "default") JvmTarget.DEFAULT else requireNotNull(JvmTarget.fromString(jvm.target)) {
+        "Unsupported compiler.jvm.target: ${jvm.target}"
+    }
+    return CompilerSettings(LanguageVersionSettingsImpl(language, api), target)
+}
 
 /**
  * Kotlin compiler APIs used to parse, analyze and compile
@@ -92,19 +124,8 @@ private class CompilationEnvironment(
             projectDisposable = disposable,
             // Not to be confused with the CompilerConfiguration in the language server Configuration
             configuration = KotlinCompilerConfiguration().apply {
-                val langFeatures = mutableMapOf<LanguageFeature, LanguageFeature.State>()
-                for (langFeature in LanguageFeature.entries) {
-                    langFeatures[langFeature] = LanguageFeature.State.ENABLED
-                }
-                val languageVersionSettings = LanguageVersionSettingsImpl(
-                    LanguageVersion.LATEST_STABLE,
-                    ApiVersion.createByLanguageVersion(LanguageVersion.LATEST_STABLE),
-                    emptyMap(),
-                    langFeatures
-                )
-
+                CompilerConfiguration().resolve().applyTo(this)
                 put(CommonConfigurationKeys.MODULE_NAME, JvmProtoBufUtil.DEFAULT_MODULE_NAME)
-                put(CommonConfigurationKeys.LANGUAGE_VERSION_SETTINGS, languageVersionSettings)
                 put(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, LoggingMessageCollector)
                 add(ComponentRegistrar.PLUGIN_COMPONENT_REGISTRARS, ScriptingCompilerConfigurationComponentRegistrar())
                 put(JVMConfigurationKeys.USE_PSI_CLASS_FILES_READING, true)
@@ -147,9 +168,8 @@ private class CompilationEnvironment(
         scripts = scriptProvider as CliScriptDefinitionProvider
     }
 
-    fun updateConfiguration(config: CompilerConfiguration) {
-        JvmTarget.fromString(config.jvm.target)
-            ?.let { environment.configuration.put(JVMConfigurationKeys.JVM_TARGET, it) }
+    fun updateConfiguration(settings: CompilerSettings) {
+        settings.applyTo(environment.configuration)
     }
 
     fun createContainer(sourcePath: Collection<KtFile>): Pair<ComponentProvider, BindingTraceContext> {
@@ -218,9 +238,12 @@ class Compiler(
      * configuration (which is a class from this project).
      */
     fun updateConfiguration(config: CompilerConfiguration) {
-        check(!closed) { "Compiler is closed" }
-        defaultCompileEnvironment.updateConfiguration(config)
-        buildScriptCompileEnvironment?.updateConfiguration(config)
+        val settings = config.resolve()
+        compileLock.withLock {
+            check(!closed) { "Compiler is closed" }
+            defaultCompileEnvironment.updateConfiguration(settings)
+            buildScriptCompileEnvironment?.updateConfiguration(settings)
+        }
     }
 
     fun createPsiFile(content: String, file: Path = Paths.get("dummy.virtual.kt"), language: Language = KotlinLanguage.INSTANCE, kind: CompilationKind = CompilationKind.DEFAULT): PsiFile {
@@ -328,6 +351,14 @@ class Compiler(
             LOG.printStackTrace(e)
             null
         }
+
+    fun clearGeneratedCode() = compileLock.withLock {
+        check(!closed) { "Compiler is closed" }
+        val root = outputDirectory.toPath()
+        Files.walk(root).use { paths ->
+            paths.filter { it != root }.sorted(Comparator.reverseOrder()).forEach(Files::delete)
+        }
+    }
 
     fun removeGeneratedCode(files: Collection<KtFile>) {
         check(!closed) { "Compiler is closed" }

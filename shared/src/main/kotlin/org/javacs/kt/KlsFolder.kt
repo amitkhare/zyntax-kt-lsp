@@ -2,7 +2,6 @@ package org.javacs.kt
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.Locale
 
 /**
@@ -12,8 +11,6 @@ import java.util.Locale
  * - `kls_database.db` - Symbol/index database
  * - `logs/` - Log files
  * - `exclusions.txt` - Project-specific exclusion patterns
- *
- * The folder location can be overridden via the `KLS_HOME` environment variable.
  */
 object KlsFolder {
     private const val KLS_FOLDER_NAME = ".kls"
@@ -21,25 +18,17 @@ object KlsFolder {
     private const val EXCLUSIONS_FILE_NAME = "exclusions.txt"
     private const val DATABASE_FILE_NAME = "kls_database.db"
 
-    private const val KLS_HOME_ENV = "KLS_HOME"
     private const val KLS_LOG_FILE_ENV = "KLS_LOG_FILE"
 
     /**
      * Returns the path to the `.kls/` folder.
      *
-     * Uses `KLS_HOME` environment variable if set, otherwise returns
-     * `<workspaceRoot>/.kls/`.
+     * Always returns `<workspaceRoot>/.kls/`.
      *
      * @param workspaceRoot The root path of the workspace
      * @return The path to the `.kls/` folder
      */
-    fun getPath(workspaceRoot: Path): Path {
-        val klsHomeEnv = System.getenv(KLS_HOME_ENV)
-        if (klsHomeEnv != null && klsHomeEnv.isNotBlank()) {
-            return Paths.get(klsHomeEnv)
-        }
-        return workspaceRoot.resolve(KLS_FOLDER_NAME)
-    }
+    fun getPath(workspaceRoot: Path): Path = workspaceRoot.resolve(KLS_FOLDER_NAME)
 
     /**
      * Returns the path to the `.kls/` folder, creating it if it doesn't exist.
@@ -47,13 +36,7 @@ object KlsFolder {
      * @param workspaceRoot The root path of the workspace
      * @return The path to the `.kls/` folder (guaranteed to exist)
      */
-    fun getOrCreatePath(workspaceRoot: Path): Path {
-        val klsPath = getPath(workspaceRoot)
-        if (!Files.exists(klsPath)) {
-            Files.createDirectories(klsPath)
-        }
-        return klsPath
-    }
+    fun getOrCreatePath(workspaceRoot: Path): Path = Files.createDirectories(getPath(workspaceRoot))
 
     /**
      * Returns the path to the `.kls/logs/` folder.
@@ -121,58 +104,4 @@ object KlsFolder {
         }
     }
 
-    /**
-     * Searches for a legacy database file in common locations.
-     *
-     * Checks the workspace root, `.idea/` folder, and user home directory.
-     *
-     * @param workspaceRoot The root path of the workspace
-     * @return Path to the legacy database, or null if not found
-     */
-    fun findLegacyDatabase(workspaceRoot: Path): Path? {
-        val commonLocations = listOf(
-            workspaceRoot,
-            workspaceRoot.resolve(".idea"),
-            Paths.get(System.getProperty("user.home")).resolve(".kotlin-language-server"),
-            Paths.get(System.getProperty("user.home")).resolve(".local/share/kotlin-language-server"),
-        )
-
-        for (location in commonLocations) {
-            val dbPath = location.resolve(DATABASE_FILE_NAME)
-            if (Files.exists(dbPath)) {
-                return dbPath
-            }
-        }
-        return null
-    }
-
-    /**
-     * Migrates a legacy database file to the new `.kls/` location.
-     *
-     * If a legacy database exists in a common location, it will be moved
-     * to `.kls/kls_database.db`. If the new location already has a database,
-     * the legacy one is deleted.
-     *
-     * @param workspaceRoot The root path of the workspace
-     * @return true if migration was performed, false if no legacy database was found
-     */
-    fun migrateLegacyDatabase(workspaceRoot: Path): Boolean {
-        val legacyDb = findLegacyDatabase(workspaceRoot) ?: return false
-
-        val newDb = getDatabaseFile(workspaceRoot)
-        if (Files.exists(newDb)) {
-            Files.deleteIfExists(legacyDb)
-            return true
-        }
-
-        return try {
-            getOrCreatePath(workspaceRoot)
-            Files.move(legacyDb, newDb)
-            LOG.info("Migrated database from {} to {}", legacyDb, newDb)
-            true
-        } catch (e: Exception) {
-            LOG.warn("Failed to migrate database from {} to {}: {}", legacyDb, newDb, e.message)
-            false
-        }
-    }
 }

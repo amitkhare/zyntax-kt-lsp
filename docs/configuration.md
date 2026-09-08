@@ -2,10 +2,7 @@
 
 ## How Editor Settings Map to the Server
 
-The server accepts settings via two methods:
-
-1. **Initialization options**. Sent once when the server starts (via the LSP `initialize` request). This is when your editor first connects to the server.
-2. **Workspace configuration**. Sent at runtime via `workspace/didChangeConfiguration`. The server expects settings under a `kotlin` key.
+The server accepts settings at runtime through `workspace/didChangeConfiguration`, under a `kotlin` key.
 
 > **All settings are optional.** If you don't provide a setting, the server uses the default value shown in the tables below. Not providing any settings at all is perfectly fine - the server will use all defaults.
 
@@ -64,24 +61,9 @@ Maps to this JSON the server processes:
 
 The `kotlin` wrapper is handled automatically by clients like nvim-lspconfig or lsp-mode.
 
-## Initialization Options
+## Storage
 
-These are sent **once when your editor first connects to the server** (the LSP `initialize` request). They cannot be changed after the server starts.
-
-Your editor's LSP client sends these options automatically. For example, in Neovim with `vim.lsp`:
-
-```lua
-vim.lsp.config('kotlin_language_server', {
-    init_options = {
-        storagePath = "/path/to/storage"
-    },
-    -- ...
-})
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `storagePath` | `Path?` | Directory for the server to store data (caches, database). Defaults to `.kls/` in your workspace root. |
+Workspace sessions store indexes and caches in the first workspace root's `.kls/kls_database.db`. Sessions without a workspace use isolated in-memory SQLite, released on shutdown. Invalid storage or database initialization errors fail initialization; the server does not substitute another path or backend.
 
 ## Configuration Sections
 
@@ -115,14 +97,22 @@ All sections below go inside the `kotlin` key in your editor's settings.
 ```json
 {
     "compiler": {
-        "jvm": { "target": "17" }
+        "jvm": { "target": "17" },
+        "languageVersion": "2.2",
+        "apiVersion": "2.2"
     }
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `jvm.target` | `String` | `"default"` | JVM target for the Kotlin compiler |
+| `jvm.target` | `String` | `"default"` | JVM bytecode target recognized by the pinned compiler. `"default"` selects its default target (1.8). |
+| `languageVersion` | `String` | `"2.2"` | Exact major.minor language version supported by the pinned Kotlin 2.2.21 compiler (1.8 through 2.2). Uses that version's normal feature settings, without forcing experimental features on. |
+| `apiVersion` | `String` or `null` | `null` | Exact major.minor API version (1.8 through 2.2), no higher than `languageVersion`. `null` selects the configured language version. |
+
+Compiler updates are validated together. Invalid values report an error and leave the previous compiler settings unchanged. Omitted fields retain their current values; use `apiVersion: null` or `jvm.target: "default"` to reset those fields.
+
+Version acceptance validates configuration against the pinned compiler, **not** verified K2, Android project, or Gradle Kotlin DSL intelligence. The server's frontend and exact project-model work are still being developed; accepting a 2.x setting does not certify 2.x analysis.
 
 ### diagnostics
 

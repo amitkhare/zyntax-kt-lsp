@@ -16,7 +16,6 @@ import org.javacs.kt.util.TemporaryDirectory
 import org.javacs.kt.util.parseURI
 import org.javacs.kt.externalsources.*
 import java.io.Closeable
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletableFuture.completedFuture
@@ -39,6 +38,9 @@ class KotlinLanguageServer(
     private lateinit var client: LanguageClient
 
     private val async = AsyncExecutor
+    internal val exitStatus = CompletableFuture<Int>()
+    @Volatile private var shutdownRequested = false
+    private var closed = false
     private var progressFactory: Progress.Factory = Progress.Factory.None
         set(factory) {
             field = factory
@@ -77,16 +79,7 @@ class KotlinLanguageServer(
             ?: listOf()
         val workspaceRoot = folders.firstOrNull()?.let { Paths.get(parseURI(it.uri)) }
 
-        // NOTE: init_options.storagePath is deprecated and ignored. All persistent
-        // state (database, logs, exclusions) lives in <root>/.kls/ per the .kls/
-        // design. getStoragePath(params) is still called so the deprecation WARN is
-        // emitted for clients that set it (e.g., nvim-lspconfig's default), but its
-        // return value is discarded.
-        getStoragePath(params)
-
         workspaceRoot?.let { root ->
-            KlsFolder.migrateLegacyDatabase(root)
-
             val hasCustomLogDir =
                 System.getProperty("KLS_LOG_DIR") != null ||
                     System.getenv("KLS_LOG_DIR") != null
@@ -147,30 +140,13 @@ class KotlinLanguageServer(
 
             val progress = params.workDoneToken?.let { LanguageClientProgress("Workspace folders", it, client) }
 
-            val rawStoragePath = workspaceRoot?.let { KlsFolder.getOrCreatePath(it) }
-            val storagePath =
-                // DatabaseService already has logic to handle the case where we have a malformed .kls structure
-                if (rawStoragePath != null && !Files.isDirectory(rawStoragePath)) {
-                    LOG.warn("'{}' is not a directory, falling back to in-memory database", rawStoragePath)
-                    null
-                } else {
-                    rawStoragePath
-                }
+            databaseService.setup(workspaceRoot?.let(KlsFolder::getOrCreatePath))
 
-            // Always run this
-            try {
-                databaseService.setup(storagePath)
-            } catch (e: Exception) {
-                LOG.error("Failed to initialize database, falling back to in-memory database: {}", e.message)
-                LOG.printStackTrace(e)
-                databaseService.setup(null)
-            }
-
-            // Initialize JAR index after database is set up
+            // Set up both indexes before any workspace source is analyzed.
             classPath.jarIndex.setup()
+            sourcePath.index.setup()
 
-            // Create workspace cache after database is initialized
-            val workspaceCache = databaseService.db?.let { WorkspaceCache(it) }
+            val workspaceCache = WorkspaceCache(checkNotNull(databaseService.db))
             sourcePath.workspaceCache = workspaceCache
 
             folders.forEachIndexed { i, folder ->
@@ -191,7 +167,7 @@ class KotlinLanguageServer(
             }
             progress?.close()
 
-            if (workspaceCache != null && config.cache.workspaceCacheEnabled) {
+            if (config.cache.workspaceCacheEnabled) {
                 val buildFileVersion = classPath.currentBuildFileVersion
 
                 // Compute the initial fingerprint from the pre-lint file state.
@@ -228,7 +204,9 @@ class KotlinLanguageServer(
             InitializeResult(serverCapabilities, serverInfo)
         }
 
-        return result
+        return result.whenComplete { _, error ->
+            if (error != null) databaseService.close()
+        }
     }
 
     override fun initialized(params: InitializedParams) {
@@ -253,19 +231,27 @@ class KotlinLanguageServer(
         else -> MessageType.Log
     }
 
-    override fun close() {
-        textDocumentService.close()
-        classPath.close()
-        sourcePath.close()
-        databaseService.close()
-        tempDirectory.close()
-        LOG.shutdown()
+    @Synchronized override fun close() {
+        if (closed) return
+        closed = true
+        var failure: Throwable? = null
+        for (resource in listOf(textDocumentService, sourcePath, classPath, databaseService, tempDirectory)) {
+            try {
+                resource.close()
+            } catch (error: Throwable) {
+                if (failure == null) failure = error else failure.addSuppressed(error)
+            }
+        }
+        failure?.let { throw it }
     }
 
-    override fun shutdown(): CompletableFuture<Any> {
+    @Synchronized override fun shutdown(): CompletableFuture<Any> {
         close()
+        shutdownRequested = true
         return completedFuture(null)
     }
 
-    override fun exit() {}
+    override fun exit() {
+        exitStatus.complete(if (shutdownRequested) 0 else 1)
+    }
 }

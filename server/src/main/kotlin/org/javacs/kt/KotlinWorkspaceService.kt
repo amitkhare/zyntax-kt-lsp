@@ -10,6 +10,7 @@ import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.LanguageClientAware
 import org.eclipse.lsp4j.services.WorkspaceService
 import org.javacs.kt.command.JAVA_TO_KOTLIN_COMMAND
+import org.javacs.kt.compiler.resolve
 import org.javacs.kt.j2k.convertJavaToKotlin
 import org.javacs.kt.position.extractRange
 import org.javacs.kt.symbols.symbolResolveSupport
@@ -19,6 +20,24 @@ import org.javacs.kt.util.parseURI
 
 import java.nio.file.Paths
 import java.util.concurrent.CompletableFuture
+
+internal fun CompilerConfiguration.withOptions(options: JsonObject): CompilerConfiguration {
+    fun JsonObject.string(name: String): String? {
+        val value = get(name) ?: return null
+        require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "compiler.$name must be a string" }
+        return value.asString
+    }
+    val target = options.get("jvm")?.let {
+        require(it.isJsonObject) { "compiler.jvm must be an object" }
+        it.asJsonObject.string("target")
+    } ?: jvm.target
+    val api = if (options.get("apiVersion")?.isJsonNull == true) null else options.string("apiVersion") ?: apiVersion
+    return copy(
+        jvm = JVMConfiguration(target),
+        languageVersion = options.string("languageVersion") ?: languageVersion,
+        apiVersion = api
+    ).also { it.resolve() }
+}
 
 
 class KotlinWorkspaceService(
@@ -101,14 +120,21 @@ class KotlinWorkspaceService(
             get("snippetsEnabled")?.asBoolean?.let { config.completion.snippets.enabled = it }
 
             // Update compiler options
-            get("compiler")?.asJsonObject?.apply {
-                val compiler = config.compiler
-                get("jvm")?.asJsonObject?.apply {
-                    val jvm = compiler.jvm
-                    get("target")?.asString?.let {
-                        jvm.target = it
-                        cp.updateCompilerConfiguration()
-                    }
+            get("compiler")?.let { options ->
+                val next = try {
+                    require(options.isJsonObject) { "compiler must be an object" }
+                    config.compiler.withOptions(options.asJsonObject)
+                } catch (error: IllegalArgumentException) {
+                    LOG.error("Invalid compiler configuration: {}", error.message)
+                    languageClient?.showMessage(MessageParams(MessageType.Error, "Invalid compiler configuration: ${error.message}"))
+                    return@let
+                }
+                if (next != config.compiler) {
+                    cp.compiler.updateConfiguration(next)
+                    config.compiler.jvm.target = next.jvm.target
+                    config.compiler.languageVersion = next.languageVersion
+                    config.compiler.apiVersion = next.apiVersion
+                    sp.refresh()
                 }
             }
 

@@ -63,7 +63,7 @@ Create an executable script named `kls-classpath` in your project root (or `~/.c
 
 ### Why is ktlsp using so much memory?
 
-ktlsp maintains an in-memory database of all symbols from your project and its dependencies. This enables fast completion and symbol search but can be memory-intensive for large projects. You can increase the heap size with `JAVA_OPTS="-Xmx8g"`.
+Compiler analysis and dependency indexing keep data in memory even though workspace indexes are stored in SQLite. Memory requirements depend on project size.
 
 ### Why is ktlsp slow on large projects?
 
@@ -81,7 +81,7 @@ Mitigations:
 
 ### Where is the cache stored?
 
-By default, in `.kls/kls_database.db` in your workspace root. You can change this with the `storagePath` initialization option.
+In the first workspace root's `.kls/kls_database.db`. Sessions without a workspace use isolated in-memory SQLite that is released on shutdown.
 
 ## Debugging
 

@@ -12,6 +12,10 @@ TODO: investigate how to get download count for Codeberg releases
 
 A [language server][lsp-page] that provides smart code completion, diagnostics, hover, document symbols, definition lookup, method signature help and more for [Kotlin](https://kotlinlang.org).
 
+This public fork of [winlogon/ktlsp](https://codeberg.org/winlogon/ktlsp) tracks
+[Android readiness](docs/android-readiness.md) while remaining usable by any LSP editor.
+Android runtime and project support are being verified, not yet declared complete.
+
 [![Packaging status](https://repology.org/badge/vertical-allrepos/ktlsp.svg)](https://repology.org/project/ktlsp/versions)
 
 > [!IMPORTANT]
@@ -130,9 +134,11 @@ There is an extensive suite of behavioral [tests](server/src/test/kotlin/org/jav
 
 ktlsp supports some non-standard requests through LSP. See [KotlinProtocolExtensions](server/src/main/kotlin/org/javacs/kt/KotlinProtocolExtensions.kt) for a description of the interface. The general syntax for these methods is `kotlin/someCustomMethod`.
 
-## Initialization Options
+## Configuration
 
-ktlsp supports some custom initialization options via the `initializationOptions` property in the `initialize` request parameters. See `InitializationOptions` in [Configuration](server/src/main/kotlin/org/javacs/kt/Configuration.kt) for a list of supported properties.
+See [Configuration](docs/configuration.md) for compiler and editor settings.
+Workspace caches use SQLite in `.kls/`; dependency license texts and source-access
+notices are included in the server distribution.
 
 ## Features
 

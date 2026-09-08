@@ -1,6 +1,7 @@
 package org.javacs.kt
 
-import org.jetbrains.exposed.sql.Database
+import org.javacs.kt.database.DatabaseService
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -10,18 +11,16 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 class WorkspaceCacheTest {
-    private lateinit var db: Database
+    private val databaseService = DatabaseService()
     private lateinit var cache: WorkspaceCache
 
-    companion object {
-        private var counter = 0
+    @Before fun setUp() {
+        databaseService.setup(null)
+        cache = WorkspaceCache(checkNotNull(databaseService.db))
     }
 
-    @Before
-    fun setUp() {
-        counter++
-        db = Database.connect("jdbc:h2:mem:workspacecache_$counter;DB_CLOSE_DELAY=-1", "org.h2.Driver")
-        cache = WorkspaceCache(db)
+    @After fun tearDown() {
+        databaseService.close()
     }
 
     @Test
@@ -142,10 +141,7 @@ class WorkspaceCacheTest {
 
     @Test
     fun `KlsFolder getOrCreatePath always returns the kls subdirectory`() {
-        // Regression test: the LSP always stores its database in
-        // <workspaceRoot>/.kls/kls_database.db. This invariant must hold
-        // regardless of init_options.storagePath (which is deprecated and
-        // ignored).
+        // Workspace storage has one canonical location.
         val tempDir: Path = Files.createTempDirectory("kls-storage-test-")
         try {
             val resolved = KlsFolder.getOrCreatePath(tempDir)
@@ -155,41 +151,6 @@ class WorkspaceCacheTest {
                 resolved
             )
             assertTrue("Kls folder should be created on disk", Files.isDirectory(resolved))
-        } finally {
-            Files.walk(tempDir)
-                .sorted(Comparator.reverseOrder())
-                .forEach { Files.deleteIfExists(it) }
-        }
-    }
-
-    @Test
-    fun `KlsFolder migrateLegacyDatabase deletes the legacy file when kls folder already has a database`() {
-        // Simulates the scenario where a user previously ran the buggy
-        // version (which stored the DB at <root>/kls_database.db) and has
-        // since upgraded.
-
-        // The migration should clean up the legacy file without touching the
-        // canonical .kls/ database.
-        val tempDir: Path = Files.createTempDirectory("kls-migration-test-")
-        try {
-            val klsDir = Files.createDirectories(tempDir.resolve(".kls"))
-            val klsDb = klsDir.resolve("kls_database.db")
-            Files.write(klsDb, "canonical".toByteArray())
-
-            val legacyDb = tempDir.resolve("kls_database.db")
-            Files.write(legacyDb, "legacy".toByteArray())
-
-            KlsFolder.migrateLegacyDatabase(tempDir)
-
-            assertEquals(
-                "Canonical .kls/kls_database.db must be untouched",
-                "canonical",
-                Files.readString(klsDb)
-            )
-            assertFalse(
-                "Legacy kls_database.db at workspace root must be removed",
-                Files.exists(legacyDb)
-            )
         } finally {
             Files.walk(tempDir)
                 .sorted(Comparator.reverseOrder())

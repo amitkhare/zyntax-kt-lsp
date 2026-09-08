@@ -349,9 +349,13 @@ class CompilerClassPath(
     }
 
     override fun close() {
-        compiler.close()
-        outputDirectory.delete()
-        jarIndexCache.clear()
+        try {
+            compiler.clearGeneratedCode()
+        } finally {
+            compiler.close()
+            outputDirectory.delete()
+            jarIndexCache.clear()
+        }
     }
 }
 

@@ -1,20 +1,8 @@
 package org.javacs.kt
 
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
-import com.google.gson.JsonParseException
-
-import org.eclipse.lsp4j.InitializeParams
 import org.eclipse.lsp4j.DiagnosticSeverity
 
-import java.lang.reflect.Type
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
-import java.nio.file.Paths
-
+import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.name.FqName
 
 public data class SnippetsConfiguration(
@@ -87,12 +75,15 @@ public data class DiagnosticsConfiguration(
 )
 
 public data class JVMConfiguration(
-    /** Which JVM target the Kotlin compiler uses. See Compiler.jvmTargetFrom for possible values. */
+    /** JVM bytecode target; "default" uses the pinned compiler's default. */
     var target: String = "default"
 )
 
 public data class CompilerConfiguration(
-    val jvm: JVMConfiguration = JVMConfiguration()
+    val jvm: JVMConfiguration = JVMConfiguration(),
+    var languageVersion: String = LanguageVersion.LATEST_STABLE.versionString,
+    /** Null selects the configured language version's API. */
+    var apiVersion: String? = null
 )
 
 public data class IndexingConfiguration(
@@ -151,62 +142,6 @@ data class FormattingConfiguration(
     var formatter: String = "ktfmt",
     var ktfmt: KtfmtConfiguration = KtfmtConfiguration()
 )
-
-fun getStoragePath(params: InitializeParams): Path? {
-    params.initializationOptions?.let { initializationOptions ->
-        // Handle case where initializationOptions is an array instead of an object
-        if (initializationOptions !is JsonObject) {
-            LOG.warn("Initialization options is not an object, ignoring: {}", initializationOptions)
-            return null
-        }
-        val gson = GsonBuilder().registerTypeHierarchyAdapter(Path::class.java, GsonPathConverter()).create()
-        val options = gson.fromJson(initializationOptions as JsonElement, InitializationOptions::class.java)
-
-        // NOTE: storagePath is deprecated. All persistent state now lives in
-        // <workspaceRoot>/.kls/ regardless of this field.
-        //
-        // This WARN is logged once per initialize() call so clients
-        // (e.g., nvim-lspconfig's default of storagePath = <projectRoot>) are
-        // aware their override is ignored.
-        if (options?.storagePath != null) {
-            LOG.warn(
-                "init_options.storagePath is deprecated and ignored."
-                    + "ktlsp uses <workspaceRoot>/.kls/ for persistent state."
-                    + "Please remove storagePath from your editor config."
-            )
-        }
-
-        return options?.storagePath
-    }
-
-    return null
-}
-
-data class InitializationOptions(
-    // NOTE: Deprecated and ignored.
-    //
-    // The LSP always uses <workspaceRoot>/.kls/ for the database.
-    //
-    // This field is kept for backward compatibility. Clients that send it
-    // (e.g., nvim-lspconfig's default) won't error, but the value is discarded
-    // and a WARN is logged.
-    val storagePath: Path?,
-    // Additional paths to exclude from source files.
-    val additionalSourceExclusions: List<String>?
-)
-
-class GsonPathConverter : JsonDeserializer<Path?> {
-
-    @Throws(JsonParseException::class)
-    override fun deserialize(json: JsonElement, type: Type?, context: JsonDeserializationContext?): Path? {
-        return try {
-            Paths.get(json.asString)
-        } catch (ex: InvalidPathException) {
-            LOG.printStackTrace(ex)
-            null
-        }
-    }
-}
 
 public data class Configuration(
     val codegen: CodegenConfiguration = CodegenConfiguration(),

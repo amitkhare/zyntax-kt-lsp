@@ -95,7 +95,7 @@ kotlin-language-server
 
 ## java.lang.OutOfMemoryError when running language server
 
-The language server is currently a memory hog, mostly due to its use of an in-memory database for symbols (ALL symbols from dependencies etc.!). This makes it not work well for machines with little RAM. If you experience out of memory issues, and still have lots of RAM, the default heap space might be too low.
+Compiler analysis and dependency indexing can require substantial memory even though workspace indexes are stored in SQLite. If you experience out-of-memory errors, check available device memory before increasing the heap limit.
 
 You might want to try tweaking the maximum heap space setting by setting `-Xmx8g` (which sets the heap size to 8GB. Change the number to your needs). This can be done by setting the `JAVA_OPTS` environment variable.
 

@@ -183,11 +183,15 @@ class SourcePath(
             }.hashContent(newContent)
         }
 
-        fun clean() {
+        fun invalidateAnalysis() {
             parsed = null
             singleFileCache = null
             multiFileCache = null
             lastSavedFile = null
+        }
+
+        fun clean() {
+            invalidateAnalysis()
             content = ""
             contentHash = 0L
         }
@@ -579,8 +583,16 @@ class SourcePath(
         val initialized = snapshot.any { it.parsed != null }
         if (initialized) {
             LOG.info("Refreshing source path")
-            snapshot.forEach { it.clean() }
-            snapshot.forEach { it.compile() }
+            val previous = snapshot.map { it.clone() }
+            cp.compiler.clearGeneratedCode()
+            val indexesWereDisabled = indexRefreshDisabled.getAndSet(true)
+            try {
+                snapshot.forEach { it.invalidateAnalysis() }
+                snapshot.forEach { it.compile() }
+            } finally {
+                indexRefreshDisabled.set(indexesWereDisabled)
+            }
+            refreshWorkspaceIndexes(previous, snapshot)
         }
     }
 

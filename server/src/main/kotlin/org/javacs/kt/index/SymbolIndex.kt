@@ -104,8 +104,12 @@ class SymbolIndex(
 ) {
     private val updateIndexesLock = ReentrantLock()
 
-    private val db: Database by lazy {
-        databaseService.db ?: Database.connect("jdbc:h2:mem:symbolindex;DB_CLOSE_DELAY=-1", "org.h2.Driver")
+    private val db: Database get() = checkNotNull(databaseService.db) { "Database is not initialized" }
+
+    fun setup() {
+        transaction(db) {
+            SchemaUtils.create(Symbols, Locations, Ranges, Positions, Supertypes)
+        }
     }
 
     var progressFactory: Progress.Factory = Progress.Factory.None
@@ -125,9 +129,6 @@ class SymbolIndex(
             try {
                 updateIndexesLock.withLock {
                     transaction(db) {
-                        // Ensure schema exists (newly initialized real database needs this)
-                        SchemaUtils.create(Symbols, Locations, Ranges, Positions, Supertypes)
-
                         // Remove everything first.
                         Symbols.deleteAll()
                         Supertypes.deleteAll()
@@ -184,8 +185,6 @@ class SymbolIndex(
         updateIndexesLock.withLock {
             try {
                 transaction(db) {
-                    // Ensure schema exists (may be first use of a real database)
-                    SchemaUtils.create(Symbols, Locations, Ranges, Positions, Supertypes)
                     removeDeclarations(remove)
                     addDeclarations(add)
 
@@ -287,9 +286,6 @@ class SymbolIndex(
     }
 
     fun query(prefix: String, receiverType: FqName? = null, limit: Int = 20, suffix: String = "%"): List<Symbol> = transaction(db) {
-        // Ensure schema exists (may be first use of a real database)
-        SchemaUtils.create(Symbols, Locations, Ranges, Positions)
-
         // TODO: Extension completion currently only works if the receiver matches exactly,
         //       ideally this should work with subtypes as well
         SymbolEntity.find {
@@ -315,13 +311,11 @@ class SymbolIndex(
     }
 
     fun supertypesOf(fqName: FqName): List<FqName> = transaction(db) {
-        SchemaUtils.create(Symbols, Locations, Ranges, Positions, Supertypes)
         Supertypes.selectAll().where { Supertypes.symbolFqName eq fqName.toString() }
             .map { FqName(it[Supertypes.superFqName]) }
     }
 
     fun subtypesOf(fqName: FqName): List<FqName> = transaction(db) {
-        SchemaUtils.create(Symbols, Locations, Ranges, Positions, Supertypes)
         Supertypes.selectAll().where { Supertypes.superFqName eq fqName.toString() }
             .map { FqName(it[Supertypes.symbolFqName]) }
     }

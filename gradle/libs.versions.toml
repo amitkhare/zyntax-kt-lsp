@@ -44,8 +44,6 @@ com-github-fwcd-ktfmt = { module = "com.github.fwcd.ktfmt:ktfmt", version = "b5d
 
 com-google-guava-guava = { module = "com.google.guava:guava", version.ref = "guavaVersion" }
 
-com-h2database-h2 = { module = "com.h2database:h2", version = "2.3.232" }
-
 com-beust-jcommander = { module = "com.beust:jcommander", version = "1.82" }
 
 org-jsoup-jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoupVersion" }
@@ -62,5 +60,5 @@ org-jetbrains-kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gra
 
 [plugins]
 com-github-jk1-tcdeps = { id = "com.github.jk1.tcdeps", version = "1.6.2" }
-com-jaredsburrows-license = { id = "com.jaredsburrows.license", version = "0.9.8" }
+com-jaredsburrows-license = { id = "com.jaredsburrows.license", version = "0.9.91" }
 io-gitlab-arturbosch-detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.8" }

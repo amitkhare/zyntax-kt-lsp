@@ -24,6 +24,10 @@ application {
     applicationDistribution.into("bin") { filePermissions { unix("755".toInt(radix = 8)) } }
 }
 
+distributions.main {
+    contents.from(rootProject.file("LICENSE.txt"))
+}
+
 repositories {
     maven(url = "https://repo.gradle.org/gradle/libs-releases")
     maven("https://jitpack.io")
@@ -51,10 +55,8 @@ dependencies {
     implementation(libs.org.jetbrains.exposed.core)
     implementation(libs.org.jetbrains.exposed.dao)
     implementation(libs.org.jetbrains.exposed.jdbc)
-    implementation(libs.com.h2database.h2)
     implementation(libs.com.github.fwcd.ktfmt)
     implementation(libs.com.beust.jcommander)
-    implementation(libs.org.xerial.sqlite.jdbc)
     implementation(libs.com.dynatrace.hash4j.hash4j)
     implementation(libs.org.jsoup.jsoup)
 
