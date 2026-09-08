@@ -7,6 +7,11 @@ no Kotlin-specific app or SDK code is planned.
 
 ## Checklist
 
+The immediate priority is a focused USB check of basic Kotlin completion, hover
+and diagnostics, followed by optional tool/extension integration using the existing
+server. Full engine replacement and Gradle Kotlin DSL analysis are deferred, not
+prerequisites for that first integration. No app/SDK change is needed for this scope.
+
 - [x] Audit the inherited runtime, classpath importer and Kotlin DSL implementation.
 - [x] Build the baseline on Java 21 and include the root MIT license in distributions.
 - [x] Fix ordinary/build-script classpath cache invalidation; one SQLite regression passed.
@@ -48,10 +53,13 @@ Baseline: `cc77957`, server `1.4.0-rc1`, Kotlin compiler `2.2.21`, Java 21 build
 - The fork still uses classic `BindingContext`/descriptor analysis. Depending on
   compiler 2.2.21 does not establish correct K2 language support.
 - A separate live Analysis API host passed unsaved diagnostics, corrections and
-  cross-module declaration renames with language/API 1.8 and 2.2. It parsed only
-  the changed document and left disk content unchanged. Global shutdown then
-  exposed a compiler-bundled IntelliJ API mismatch; dependency alignment remains
-  required before this probe is considered fully passed or used by the server.
+  cross-module declaration renames with language/API 1.8 and 2.2, module-scoped
+  package lookup, one parse per edit, unchanged disk files, and global shutdown.
+  The published compiler had removed a required IntelliJ shutdown method. Building
+  the exact upstream compiler with its supported shrinking option disabled fixed
+  that runtime mismatch without a source patch or shutdown bypass. The tracked
+  [analysis module](../analysis/README.md) requires the intact artifact; the server
+  is not yet connected to it, and Android analysis verification remains pending.
 - The supplied Android sample's three Gradle 9.4.1 scripts loaded the modern public
   project/settings/init template definitions under Kotlin 2.2.21. Each actual
   script matched exactly one template and retained its evaluated imports and
@@ -92,7 +100,7 @@ resolve duplicate classes and assess the native libraries before declaring Andro
 A successful build or LSP startup alone does not establish Android project or Kotlin
 DSL correctness. APK/AAB building and signing remain a separate optional-extension track.
 
-## Next implementation boundary
+## Deferred modern-analysis work
 
 1. Import evaluated builds, compilations and individual scripts. Preserve ordered
    dependencies, source roots, compiler settings, friend compilations and build identity;

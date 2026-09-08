@@ -32,6 +32,8 @@ To create a ZIP-archive of the language server, run:
 
 ### Modern analysis runtime (in progress)
 
+This work is paused and is not required to build or integrate the current server.
+
 The standalone Analysis API needs an intact IntelliJ runtime. The published Kotlin
 2.2.21 CLI compiler has removed a shutdown API through ProGuard; adding overlapping
 IntelliJ JARs is not the replacement. Build the normal compiler artifact from the
@@ -46,8 +48,16 @@ with its supported shrinking option disabled:
 Use the final compiler JAR, not the `before-proguard` intermediate. The upstream
 build uses Java 21 and provisions its compilation toolchains. Record the source
 commit and build options: this is a locally built artifact, not JetBrains' published
-binary. This runtime is still under verification and is not the server's active
-dependency; no compiler source patch or shutdown bypass is used.
+binary. The resulting 69,487,833-byte compiler JAR passed the live-analysis module's
+focused verification, including global shutdown, on Java 21. Its SHA-256 is
+`fa15e514d05ae128e540b96e2638b8bc3485b790fd09ca70ba0872a75b77dc5c`.
+The source build's normal version-generation tasks use the supplied build number;
+no compiler source patch or shutdown bypass is used.
+
+The [analysis module](../analysis/README.md) requires this intact artifact through
+`analysisCompilerJar` and excludes the shrunk compiler from transitive dependencies.
+It is not yet connected to the server; Android execution and the feature-preserving
+engine replacement remain separate work.
 
 ## Gradle Tasks
 

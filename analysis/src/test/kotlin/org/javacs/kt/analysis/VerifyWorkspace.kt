@@ -5,6 +5,8 @@ package org.javacs.kt.analysis
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.components.KaDiagnosticCheckerFilter
 import org.jetbrains.kotlin.analysis.api.diagnostics.KaSeverity
+import org.jetbrains.kotlin.analysis.api.platform.declarations.KotlinDeclarationProviderFactory
+import org.jetbrains.kotlin.analysis.api.platform.projectStructure.KotlinProjectStructureProvider
 import org.jetbrains.kotlin.analysis.api.resolution.successfulFunctionCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
 import org.jetbrains.kotlin.analysis.api.standalone.disposeGlobalStandaloneApplicationServices
@@ -75,23 +77,29 @@ private fun runProbe(args: Array<String>) {
                     check(file.virtualFile.url == path.toUri().toString()) { "Lost actual source URI" }
                 }
             }
-            verified("initial cross-module resolution", "probe.answer")
+            verified("initial cross-module resolution", "dependency.answer")
+            workspace.read(libraryPath) { file ->
+                val module = KotlinProjectStructureProvider.getModule(file.project, file, useSiteModule = null)
+                val packages = KotlinDeclarationProviderFactory.getInstance(file.project)
+                    .createDeclarationProvider(module.contentScope, module).computePackageNames().orEmpty()
+                check("dependency" in packages && "client" !in packages) { "Package index escaped its module scope: $packages" }
+            }
             val initialDependency = workspace.read(libraryPath) { it }
-            edit(appPath, "package probe\nfun value(): String = answer()\n")
+            edit(appPath, "package client\nimport dependency.answer\nfun value(): String = answer()\n")
             check(workspace.read(libraryPath) { it === initialDependency })
             val invalid = workspace.read(appPath, ::inspect)
             check(invalid.errors.isNotEmpty()) { "Unsaved type error was not diagnosed: $invalid" }
             println("PASS unsaved diagnostic: ${invalid.errors}")
             edit(appPath, originalApp)
-            verified("unsaved correction", "probe.answer")
+            verified("unsaved correction", "dependency.answer")
             val unchangedSource = workspace.read(appPath) { it }
-            edit(libraryPath, "package probe\nfun nextAnswer(): Int = 42\n")
+            edit(libraryPath, "package dependency\nfun nextAnswer(): Int = 42\n")
             check(initialDependency.text == originalLibrary) { "Old snapshot was mutated" }
             check(workspace.read(appPath) { it === unchangedSource })
             val removed = workspace.read(appPath, ::inspect)
             check(removed.target == null && removed.errors.isNotEmpty()) { "Removed declaration remained visible: $removed" }
-            edit(appPath, "package probe\nfun value(): Int = nextAnswer()\n")
-            verified("cross-module unsaved declaration rename", "probe.nextAnswer")
+            edit(appPath, "package client\nimport dependency.nextAnswer\nfun value(): Int = nextAnswer()\n")
+            verified("cross-module unsaved declaration rename", "dependency.nextAnswer")
             check(Files.readString(libraryPath) == originalLibrary)
             check(Files.readString(appPath) == originalApp)
             println("PASS source files unchanged on disk; one parse per edit")

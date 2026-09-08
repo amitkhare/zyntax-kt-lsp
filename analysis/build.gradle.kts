@@ -8,8 +8,11 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("compiler"))
+    implementation(files(providers.gradleProperty("analysisCompilerJar")))
+    implementation(kotlin("stdlib-jdk8"))
+    implementation(kotlin("script-runtime"))
     implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
     implementation(kotlin("scripting-compiler"))
     implementation(kotlin("assignment-compiler-plugin"))
     // Upstream assembles these jars from the internal modules still named in their POMs.
@@ -31,6 +34,9 @@ dependencies {
     // IntelliJ 241.19416.19 util-xml-dom requires JSON and its transitive core runtime.
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.6.3")
 }
+
+// The source-built compiler is the only compiler runtime, including scripting dependencies.
+configurations.configureEach { exclude(group = "org.jetbrains.kotlin", module = "kotlin-compiler") }
 
 kotlin { jvmToolchain(21) }
 tasks.register<JavaExec>("verifyWorkspace") {

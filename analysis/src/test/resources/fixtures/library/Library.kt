@@ -1,3 +1,3 @@
-package probe
+package dependency
 
 fun answer(): Int = 42
