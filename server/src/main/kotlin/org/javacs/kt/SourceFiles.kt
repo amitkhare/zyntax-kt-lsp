@@ -101,7 +101,7 @@ class SourceFiles(
             val existing = checkNotNull(files[uri]) { "edit() called before open() for $uri" }
             var newText = existing.content
 
-            if (newVersion < existing.version) {
+            if (newVersion <= existing.version) {
                 return
             }
 
@@ -119,13 +119,13 @@ class SourceFiles(
     }
 
     fun deletedOnDisk(uri: URI) {
-        if (isSource(uri)) {
+        if (!isOpen(uri) && isSource(uri)) {
             files.remove(uri)
         }
     }
 
     fun changedOnDisk(uri: URI) {
-        if (isSource(uri)) {
+        if (!isOpen(uri) && isSource(uri)) {
             files[uri] = readFromDisk(uri, files[uri]?.isTemporary ?: true)
                 ?: throw KotlinLSException("Could not read source file '$uri' after being changed on disk")
         }
@@ -203,22 +203,6 @@ class SourceFiles(
     fun isIncluded(uri: URI): Boolean = exclusions.isURIIncluded(uri)
 
     fun version(uri: URI): Int? = files[uri]?.version
-
-    /**
-     * Refreshes the content of a file after it's saved to disk.
-     * Only increments the version if the content actually changed.
-     * This ensures diagnostics are published after save, while avoiding
-     * version conflicts when content hasn't actually changed.
-     */
-    fun refreshContent(uri: URI, content: String) {
-        if (!isIncluded(uri)) return
-
-        val existing = files[uri]
-        if (existing != null && existing.content != content) {
-            val newVersion = existing.version + 1
-            files[uri] = SourceVersion(content, newVersion, existing.language, existing.isTemporary)
-        }
-    }
 }
 
 private fun patch(sourceText: String, change: TextDocumentContentChangeEvent): String {

@@ -534,11 +534,7 @@ class KotlinTextDocumentService(
     override fun didSave(params: DidSaveTextDocumentParams) {
         val uri = parseURI(params.textDocument.uri)
 
-        // Refresh content from disk (only increments version if content changed)
-        val content = uriContentProvider.contentOf(uri)
-        sf.refreshContent(uri, content)
-
-        // Run lint immediately - no need to debounce on save
+        // Open text and versions belong to the client, including after a save.
         lintNow(uri)
     }
 
