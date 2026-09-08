@@ -17,6 +17,8 @@ This public fork of [winlogon/ktlsp](https://codeberg.org/winlogon/ktlsp) tracks
 Android runtime and project support are being verified, not yet declared complete.
 The [evaluated Gradle importer](docs/gradle-project-import.md) now preserves compilation
 and script inputs independently; wiring them into modern editor analysis remains in progress.
+The replacement [live analysis foundation](analysis/README.md) is checkpointed
+separately and is not yet connected to the server.
 Open-document text and versions remain client-owned across saves and filesystem
 notifications; disk content becomes authoritative again when the document closes.
 
