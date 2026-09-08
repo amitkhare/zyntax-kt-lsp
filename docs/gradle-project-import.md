@@ -38,6 +38,11 @@ Verified on 8 September 2026:
 - The supplied Kotlin-DSL Android sample, AGP 9.2.1: debug, release, unit-test and
   instrumentation-test compilations plus three script models; no APK build/tests.
 - Two focused script projection checks preserve ordering, reports and identities.
+- Gradle 9.4.1's modern public templates load with Kotlin 2.2.21 metadata checks
+  enabled; all three sample scripts select exactly one template. Their annotated
+  configuration supplies language/API settings and implicit receivers. Integration
+  must use these settings and each script's model, not a fixed import list or the
+  deprecated `KotlinBuildScript` template. FIR script analysis remains unverified.
 
 This is the replacement input boundary, not a claim of working modern Kotlin or
 Gradle Kotlin DSL editor intelligence. Its analysis-engine integration remains

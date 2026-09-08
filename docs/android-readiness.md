@@ -17,6 +17,8 @@ no Kotlin-specific app or SDK code is planned.
 - [x] Verify corrected LSP shutdown/exit lifecycle on the same device.
 - [x] Validate compiler settings without forcing experimental language features;
   preserve unsaved source text when refreshing analysis.
+- [x] Preserve client-owned open text/version across filesystem events and saves;
+  reject duplicate/out-of-order document changes.
 - [x] Implement and verify evaluated Gradle compilation and per-script import on the
   fork's JVM build and the supplied Kotlin-DSL Android sample.
 - [ ] Replace classic compiler analysis with a coherent modern analysis engine;
@@ -45,6 +47,15 @@ Baseline: `cc77957`, server `1.4.0-rc1`, Kotlin compiler `2.2.21`, Java 21 build
   evaluated project settings remain pending.
 - The fork still uses classic `BindingContext`/descriptor analysis. Depending on
   compiler 2.2.21 does not establish correct K2 language support.
+- A separate live Analysis API host passed unsaved diagnostics, corrections and
+  cross-module declaration renames with language/API 1.8 and 2.2. It parsed only
+  the changed document and left disk content unchanged. Global shutdown then
+  exposed a compiler-bundled IntelliJ API mismatch; dependency alignment remains
+  required before this probe is considered fully passed or used by the server.
+- The supplied Android sample's three Gradle 9.4.1 scripts loaded the modern public
+  project/settings/init template definitions under Kotlin 2.2.21. Each actual
+  script matched exactly one template and retained its evaluated imports and
+  dependencies. Template loading is not yet script-analysis verification.
 - SQLite's packaged Android ARM64 JNI library loaded successfully through its
   documented native-path setting. Initialization created a real workspace database.
   The strict USB probe exposed an empty LSP `exit` handler. After correction, the
@@ -93,6 +104,11 @@ DSL correctness. APK/AAB building and signing remain a separate optional-extensi
    [standalone session builder](https://github.com/JetBrains/kotlin/blob/v2.2.21/analysis/analysis-api-standalone/src/org/jetbrains/kotlin/analysis/api/standalone/StandaloneAnalysisAPISessionBuilder.kt).
    Replace long-lived `BindingContext`/descriptor caches and port their feature
    consumers together; do not retain a second legacy engine or compatibility adapter.
+   Keep PSI-only folding, document symbols, formatting and text-edit utilities.
+   Completion, navigation/refactoring, diagnostics, semantic tokens and indexes
+   must return plain results from request-scoped analysis, not retained symbols.
+   Preserve quick fixes, hierarchy, main-class/override-member protocol methods
+   and optional code generation during the same cutover; do not silently drop them.
 3. Consume Gradle's evaluated Kotlin DSL script model for classpaths, source paths,
    implicit imports and script errors. Keep Zyntax's project-model file format in
    the extension adapter, not in the editor-independent server.
