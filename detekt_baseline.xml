@@ -1,0 +1,96 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:Hovers.kt$javaDoc.isEmpty() &amp;&amp; classContentProvider != null &amp;&amp; cp != null &amp;&amp; target is DeclarationDescriptorWithSource</ID>
+    <ID>ComplexCondition:SemanticTokens.kt$element is KtVariableDeclaration &amp;&amp; (!element.isVar || element.hasModifier(KtTokens.CONST_KEYWORD)) || element is KtParameter</ID>
+    <ID>CyclomaticComplexMethod:HtmlToMarkdownConverter.kt$HtmlToMarkdownConverter$private fun convertElement(element: Element): String</ID>
+    <ID>CyclomaticComplexMethod:KotlinLanguageServer.kt$KotlinLanguageServer$override fun initialize(params: InitializeParams): CompletableFuture&lt;InitializeResult&gt;</ID>
+    <ID>CyclomaticComplexMethod:SemanticTokens.kt$private fun elementToken(element: PsiElement, bindingContext: BindingContext): SemanticToken?</ID>
+    <ID>EmptyFunctionBlock:KotlinLanguageServer.kt$KotlinLanguageServer${}</ID>
+    <ID>EmptyFunctionBlock:Logger.kt$JULRedirector${}</ID>
+    <ID>EmptyFunctionBlock:LoggingMessageCollector.kt$LoggingMessageCollector${}</ID>
+    <ID>EmptyFunctionBlock:SourcePath.kt$SourcePath${ }</ID>
+    <ID>FunctionOnlyReturningConstant:Example.kt$fun example()</ID>
+    <ID>LongMethod:KotlinLanguageServer.kt$KotlinLanguageServer$override fun initialize(params: InitializeParams): CompletableFuture&lt;InitializeResult&gt;</ID>
+    <ID>LongMethod:SemanticTokens.kt$private fun elementToken(element: PsiElement, bindingContext: BindingContext): SemanticToken?</ID>
+    <ID>LongParameterList:CodeLens.kt$( declaration: KtNamedDeclaration, filePath: Path, uri: String, content: String, sp: SourcePath, codeLenses: MutableList&lt;CodeLens&gt; )</ID>
+    <ID>LongParameterList:CompiledFile.kt$CompiledFile$( val content: String, val parse: KtFile, val compile: BindingContext, val module: ModuleDescriptor, val sourcePath: Collection&lt;KtFile&gt;, val classPath: CompilerClassPath, val isScript: Boolean = false, val kind: CompilationKind = CompilationKind.DEFAULT )</ID>
+    <ID>LongParameterList:GoToDefinition.kt$( file: CompiledFile, cursor: Int, classContentProvider: ClassContentProvider, tempDir: TemporaryDirectory, config: ExternalSourcesConfiguration, cp: CompilerClassPath )</ID>
+    <ID>LongParameterList:SourcePath.kt$SourcePath.SourceFile$( /** * Unique identifier for the file. Used as the key in the source path map. */ val uri: URI, /** * Current text content of the file. * * Updated on every edit and used for parsing and cache invalidation. */ var content: String, /** * Filesystem path if available. * * Used for creating PSI files with correct virtual file paths. */ val path: Path? = uri.filePath, /** * Parsed PSI tree. Lazily created and cached to avoid re-parsing unchanged content. */ var parsed: KtFile? = null, /** * Language of the file (Kotlin or Kotlin script). * * TODO: Currently unused but stored for future multi-language support. */ val language: Language? = null, /** * A temporary source file is excluded from `all()` and is not indexed. * * Used for ephemeral files like completion snippets. */ val isTemporary: Boolean = false, /** * Last successfully compiled file used for code generation. * Needed to delete old .class files before regenerating. */ var lastSavedFile: KtFile? = null, /** * Single-file compilation cache populated by doCompile(). * Used for fast LSP features (hover, completion, goto-definition). */ @Volatile var singleFileCache: CompilationCache? = null, /** * Multi-file compilation cache populated by compileFiles/compileAndUpdate(). * Used for diagnostics, indexing, and cross-file type info. */ @Volatile var multiFileCache: CompilationCache? = null, )</ID>
+    <ID>LoopWithTooManyJumpStatements:ExternalDocFinder.kt$for</ID>
+    <ID>LoopWithTooManyJumpStatements:Hovers.kt$for</ID>
+    <ID>MagicNumber:BackupClassPathResolver.kt$3</ID>
+    <ID>MagicNumber:ClassContentProvider.kt$ClassContentProvider.&lt;no name provided&gt;$5</ID>
+    <ID>MagicNumber:Compiler.kt$3</ID>
+    <ID>MagicNumber:Compiler.kt$5</ID>
+    <ID>MagicNumber:CompilerClassPath.kt$5</ID>
+    <ID>MagicNumber:CompilerClassPath.kt$CompilerClassPath.&lt;no name provided&gt;$0.75f</ID>
+    <ID>MagicNumber:CompilerClassPath.kt$CompilerClassPath.&lt;no name provided&gt;$1000</ID>
+    <ID>MagicNumber:CompilerClassPath.kt$CompilerClassPath.&lt;no name provided&gt;$128</ID>
+    <ID>MagicNumber:ExceptionDiagnosticExtractor.kt$200</ID>
+    <ID>MagicNumber:Hovers.kt$3</ID>
+    <ID>MagicNumber:JarIndex.kt$JarIndexTable$511</ID>
+    <ID>MagicNumber:KotlinLanguageServer.kt$KotlinLanguageServer$100</ID>
+    <ID>MagicNumber:KotlinTextDocumentService.kt$KotlinTextDocumentService$3</ID>
+    <ID>MagicNumber:Logger.kt$LogLevel.ALL$100</ID>
+    <ID>MagicNumber:Logger.kt$LogLevel.DEEP_TRACE$3</ID>
+    <ID>MagicNumber:Logger.kt$LogLevel.NONE$100</ID>
+    <ID>MagicNumber:Logger.kt$LogLevel.TRACE$2</ID>
+    <ID>MagicNumber:Logger.kt$Logger$10</ID>
+    <ID>MagicNumber:MavenClassPathResolver.kt$3</ID>
+    <ID>MagicNumber:MavenClassPathResolver.kt$4</ID>
+    <ID>MagicNumber:MavenClassPathResolver.kt$5</ID>
+    <ID>MagicNumber:MavenClassPathResolver.kt$6</ID>
+    <ID>MagicNumber:MavenClassPathResolver.kt$MavenClassPathResolver$5</ID>
+    <ID>MagicNumber:SourcePath.kt$SourcePath.&lt;no name provided&gt;$0.75f</ID>
+    <ID>MagicNumber:SourcePath.kt$SourcePath.&lt;no name provided&gt;$1.25</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.CONSTRUCTOR$7</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.ENUM$5</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.ENUM_MEMBER$6</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.FIELD$8</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.MODULE$4</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.UNKNOWN$9</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Kind.VARIABLE$3</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Visibility.PROTECTED$3</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Visibility.PUBLIC$4</ID>
+    <ID>MagicNumber:Symbol.kt$Symbol.Visibility.UNKNOWN$5</ID>
+    <ID>MagicNumber:URIs.kt$5</ID>
+    <ID>MatchingDeclarationName:ExceptionDiagnosticExtractor.kt$DiagnosticInfo</ID>
+    <ID>MatchingDeclarationName:Main.kt$Args</ID>
+    <ID>NestedBlockDepth:CodeLens.kt$fun findCodeLenses(file: CompiledFile, sp: SourcePath): List&lt;CodeLens&gt;</ID>
+    <ID>NestedBlockDepth:Completions.kt$private fun completeMembers(file: CompiledFile, cursor: Int, receiverExpr: KtExpression, unwrapNullable: Boolean = false): Sequence&lt;DeclarationDescriptor&gt;</ID>
+    <ID>NestedBlockDepth:ExternalDocFinder.kt$internal fun cleanKDoc(kdocText: String): String</ID>
+    <ID>NestedBlockDepth:Hovers.kt$private fun renderJavaDoc(text: String): String</ID>
+    <ID>NestedBlockDepth:KotlinWorkspaceService.kt$KotlinWorkspaceService$override fun didChangeWatchedFiles(params: DidChangeWatchedFilesParams)</ID>
+    <ID>NestedBlockDepth:OverrideMembers.kt$private fun parametersMatch( function: KtNamedFunction, functionDescriptor: FunctionDescriptor ): Boolean</ID>
+    <ID>NewLineAtEndOfFile:Example.kt$.Example.kt</ID>
+    <ID>PrintStackTrace:CompilerClassPath.kt$CompilerClassPath$e</ID>
+    <ID>ReturnCount:FindDoc.kt$fun findDoc( declaration: DeclarationDescriptorWithSource, classContentProvider: ClassContentProvider? = null, cp: CompilerClassPath? = null ): String?</ID>
+    <ID>ReturnCount:GradleClassPathResolver.kt$private fun findSourcesJarForGradleDependency(compiledJar: Path): Path?</ID>
+    <ID>ReturnCount:Hovers.kt$private fun typeHoverAt(file: CompiledFile, cursor: Int): Hover?</ID>
+    <ID>SpreadOperator:AsyncExecutor.kt$AsyncExecutor$(*futures.toTypedArray())</ID>
+    <ID>SpreadOperator:Main.kt$(*argv)</ID>
+    <ID>TooGenericExceptionThrown:Position.kt$throw RuntimeException("Reached end of file before reaching char $char")</ID>
+    <ID>TooGenericExceptionThrown:Position.kt$throw RuntimeException("Reached end of file before reaching line $line")</ID>
+    <ID>TooGenericExceptionThrown:Position.kt$throw RuntimeException("Reached end of file before reaching offset $offset")</ID>
+    <ID>TooManyFunctions:CompiledFile.kt$CompiledFile</ID>
+    <ID>TooManyFunctions:Completions.kt$org.javacs.kt.completion.Completions.kt</ID>
+    <ID>TooManyFunctions:FindReferences.kt$org.javacs.kt.references.FindReferences.kt</ID>
+    <ID>TooManyFunctions:SourcePath.kt$SourcePath : Closeable</ID>
+    <ID>VariableNaming:CompilerClassPath.kt$CompilerClassPath$/** Sentinel value indicating a search is in progress */ private val IN_PROGRESS = Pair&lt;String, String?&gt;(Sentinel.IN_PROGRESS.name, null)</ID>
+    <ID>VariableNaming:CompilerClassPath.kt$CompilerClassPath$/** Sentinel value indicating the class was not found in any JAR */ private val NOT_FOUND = Pair&lt;String, String?&gt;(Sentinel.NOT_FOUND.name, null)</ID>
+    <ID>WildcardImport:Compiler.kt$import org.jetbrains.kotlin.config.*</ID>
+    <ID>WildcardImport:Completions.kt$import org.jetbrains.kotlin.descriptors.*</ID>
+    <ID>WildcardImport:Completions.kt$import org.jetbrains.kotlin.resolve.descriptorUtil.*</ID>
+    <ID>WildcardImport:ExtractSymbolExtensionReceiverType.kt$import org.jetbrains.kotlin.descriptors.*</ID>
+    <ID>WildcardImport:ExtractSymbolKind.kt$import org.jetbrains.kotlin.descriptors.*</ID>
+    <ID>WildcardImport:ExtractSymbolVisibility.kt$import org.jetbrains.kotlin.descriptors.*</ID>
+    <ID>WildcardImport:JavaElementConverter.kt$import com.intellij.psi.*</ID>
+    <ID>WildcardImport:JavaElementConverter.kt$import com.intellij.psi.javadoc.*</ID>
+    <ID>WildcardImport:JavaTypeConverter.kt$import com.intellij.psi.*</ID>
+    <ID>WildcardImport:KotlinLanguageServer.kt$import org.javacs.kt.externalsources.*</ID>
+    <ID>WildcardImport:RenderCompletionItem.kt$import org.jetbrains.kotlin.descriptors.*</ID>
+    <ID>WildcardImport:SymbolIndex.kt$import org.jetbrains.exposed.sql.*</ID>
+  </CurrentIssues>
+</SmellBaseline>

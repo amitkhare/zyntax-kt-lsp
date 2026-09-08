@@ -1,0 +1,77 @@
+config:
+  validation: true # verifies that this config file is valid
+  warningsAsErrors: false
+
+comments:
+  excludes: &standardExcludes
+    - '**/bin/**'
+    - '**/build/**'
+    - '**/src/test/**'
+
+complexity:
+  excludes: *standardExcludes
+  CyclomaticComplexMethod:
+    threshold: 20
+  TooManyFunctions:
+    excludes:
+      - '**/Logger.kt'
+      - '**/DelegatePrintStream.kt'
+      - '**/JavaElementConverter.kt'
+      - '**/KotlinTextDocumentService.kt'
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+    thresholdInInterfaces: 20
+    thresholdInObjects: 20
+    thresholdInEnums: 20
+
+empty-blocks:
+  excludes: *standardExcludes
+
+exceptions:
+  excludes: *standardExcludes
+  SwallowedException:
+    ignoredExceptionTypes:
+      - CancellationException
+      - InterruptedException
+      - MalformedURLException
+      - NumberFormatException
+      - ParseException
+      - MissingPropertyException
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames:
+      - ArrayIndexOutOfBoundsException
+      - Error
+      - Exception
+      - IllegalMonitorStateException
+      - IndexOutOfBoundsException
+      - NullPointerException
+      - RuntimeException
+      - Throwable
+    allowedExceptionNameRegex: '_|(ignore|expected|e).*'
+
+naming:
+  excludes: *standardExcludes
+
+performance:
+  excludes: *standardExcludes
+
+potential-bugs:
+  excludes: *standardExcludes
+
+style:
+  excludes: *standardExcludes
+  MaxLineLength:
+    active: false
+  WildcardImport:
+    excludeImports:
+      - java.util.*
+      - org.hamcrest.Matchers.*
+      - org.eclipse.lsp4j.*
+      - org.jetbrains.kotlin.psi.*
+  ForbiddenComment:
+    active: false
+  ReturnCount:
+    max: 5
+    excludedFunctions:
+      - 'findImplicitItContext'

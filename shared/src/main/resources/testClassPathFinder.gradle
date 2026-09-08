@@ -1,0 +1,36 @@
+allprojects { project ->
+    task kotlinLSPTestDeps {
+        doLast {
+            println ""
+            println "gradle-version $gradleVersion"
+            println "kotlin-lsp-test-project ${project.name}"
+
+            if (!project.hasProperty('sourceSets')) {
+                return
+            }
+
+            // Try testImplementation first (standard java plugin), fallback to testCompileClasspath
+            def testConfig = project.configurations.findByName('testImplementation')
+                ?: project.configurations.findByName('testCompileClasspath')
+
+            if (!testConfig) {
+                return
+            }
+
+            try {
+                def artifacts = testConfig.incoming?.resolutionResult?.allComponents
+                    *.variants*.artifacts*.file
+                    .flatten()
+                    .findAll { file ->
+                        file?.exists() && (file.name.endsWith('.jar') || file.directory)
+                    }
+
+                artifacts.each { file ->
+                    println "kotlin-lsp-gradle $file"
+                }
+            } catch (ignored) {
+                // Skip configurations that fail to resolve
+            }
+        }
+    }
+}
