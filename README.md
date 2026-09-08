@@ -15,6 +15,8 @@ A [language server][lsp-page] that provides smart code completion, diagnostics, 
 This public fork of [winlogon/ktlsp](https://codeberg.org/winlogon/ktlsp) tracks
 [Android readiness](docs/android-readiness.md) while remaining usable by any LSP editor.
 Android runtime and project support are being verified, not yet declared complete.
+The [evaluated Gradle importer](docs/gradle-project-import.md) now preserves compilation
+and script inputs independently; wiring them into modern editor analysis remains in progress.
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/ktlsp.svg)](https://repology.org/project/ktlsp/versions)
 

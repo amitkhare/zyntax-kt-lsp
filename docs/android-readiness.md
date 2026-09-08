@@ -17,6 +17,8 @@ no Kotlin-specific app or SDK code is planned.
 - [x] Verify corrected LSP shutdown/exit lifecycle on the same device.
 - [x] Validate compiler settings without forcing experimental language features;
   preserve unsaved source text when refreshing analysis.
+- [x] Implement and verify evaluated Gradle compilation and per-script import on the
+  fork's JVM build and the supplied Kotlin-DSL Android sample.
 - [ ] Replace classic compiler analysis with a coherent modern analysis engine;
   keep compilation and script contexts separate, without parallel legacy engines.
 - [ ] Replace guessed/global Gradle classpaths with evaluated compilation inputs and
@@ -36,6 +38,8 @@ Baseline: `cc77957`, server `1.4.0-rc1`, Kotlin compiler `2.2.21`, Java 21 build
   atomically with their results, including valid empty results.
 - Gradle import combines module/variant classpaths and guesses Android output paths.
   Kotlin DSL import scans all cached dependencies instead of resolving each script.
+  The replacement [project importer](gradle-project-import.md) is verified as an
+  independent input boundary; editor analysis has not yet switched to it.
 - Compiler settings now validate language/API/JVM values and use normal feature
   settings. Six focused compiler-setting, refresh and lifecycle tests pass;
   evaluated project settings remain pending.

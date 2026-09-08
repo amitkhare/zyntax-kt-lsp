@@ -1,0 +1,127 @@
+import groovy.json.JsonOutput
+
+// Read evaluated public compilation models; no source generators or compilation tasks run.
+def modules = [:]
+def unsupported = []
+def pathOf = { File file -> file.toPath().toAbsolutePath().normalize().toString() }
+def pathsOf = { files -> files.collect(pathOf).unique() }
+def directoriesOf = { provider -> provider == null ? [] : pathsOf(provider.get().collect { it.asFile }) }
+def idOf = { compilation -> "${compilation.project.path}/${compilation.target.name}/${compilation.name}".toString() }
+
+gradle.beforeProject { project ->
+    project.pluginManager.withPlugin('org.jetbrains.kotlin.jvm') {
+        modules[project.path] = [project: project, android: false, components: [:]]
+    }
+    ['com.android.application', 'com.android.library', 'com.android.dynamic-feature', 'com.android.test'].each { pluginId ->
+        project.pluginManager.withPlugin(pluginId) {
+            def entry = [project: project, android: true, components: [:]]
+            modules[project.path] = entry
+            def components = project.extensions.getByName('androidComponents')
+            components.onVariants(components.selector().all(), { variant ->
+                variant.components.each { component -> entry.components[component.name] = component }
+            } as Action)
+        }
+    }
+    ['org.jetbrains.kotlin.multiplatform', 'org.jetbrains.kotlin.js'].each { pluginId ->
+        project.pluginManager.withPlugin(pluginId) {
+            unsupported.add("${project.path}: ${pluginId}")
+        }
+    }
+}
+
+gradle.rootProject { root ->
+    root.tasks.register('ktlspProjectModel') {
+        group = 'IDE'
+        description = 'Export evaluated Kotlin JVM and Android compilations for Kotlin LSP.'
+        notCompatibleWithConfigurationCache('Reads evaluated public Gradle, Kotlin and Android models.')
+        doLast {
+            def outputPath = root.providers.gradleProperty('ktlspModelOutput').orNull
+            if (outputPath == null || !new File(outputPath).isAbsolute()) {
+                throw new GradleException('ktlspModelOutput must name an absolute output file.')
+            }
+            if (!unsupported.empty) {
+                throw new GradleException("Unsupported Kotlin project targets: ${unsupported.join(', ')}")
+            }
+            def compilations = modules.values().collectMany { entry ->
+                def project = entry.project
+                def target = project.extensions.getByName('kotlin').target
+                if (!(target.platformType.name() in ['jvm', 'androidJvm'])) {
+                    throw new GradleException("Unsupported Kotlin target: ${project.path}/${target.name} (${target.platformType})")
+                }
+                target.compilations.collect { compilation ->
+                    def task = compilation.compileTaskProvider.get()
+                    def javaTask = compilation.compileJavaTaskProvider.get()
+                    def options = task.compilerOptions
+                    def sourceSets = compilation.allKotlinSourceSets.collect { sourceSet ->
+                        [name: sourceSet.name, roots: pathsOf(sourceSet.kotlin.srcDirs),
+                         dependsOn: sourceSet.dependsOn.collect { it.name }]
+                    }
+                    def kotlinRoots
+                    def javaRoots
+                    def generatedRoots = null
+                    if (entry.android) {
+                        def component = entry.components[compilation.name]
+                        if (component == null) {
+                            throw new GradleException("No public Android component for ${idOf(compilation)}")
+                        }
+                        kotlinRoots = directoriesOf(component.sources.kotlin?.all)
+                        javaRoots = directoriesOf(component.sources.java?.all)
+                        def staticRoots = directoriesOf(component.sources.kotlin?.static) +
+                            directoriesOf(component.sources.java?.static)
+                        generatedRoots = (kotlinRoots + javaRoots).unique().findAll { !staticRoots.contains(it) }
+                    } else {
+                        kotlinRoots = sourceSets.collectMany { it.roots }.unique()
+                        javaRoots = pathsOf(compilation.javaSourceSet.allJava.srcDirs)
+                        // JVM SourceDirectorySet does not identify which registered roots are generated.
+                    }
+                    def javaCompiler = javaTask.javaCompiler.orNull
+                    [
+                        id: idOf(compilation),
+                        projectPath: project.path,
+                        projectDirectory: pathOf(project.projectDir),
+                        target: target.name,
+                        name: compilation.name,
+                        kotlinRoots: kotlinRoots,
+                        javaRoots: javaRoots,
+                        kotlinFiles: pathsOf(task.sources.files),
+                        javaFiles: pathsOf(javaTask.source.files + task.javaSources.files),
+                        generatedRoots: generatedRoots,
+                        classpath: pathsOf(task.libraries.files),
+                        outputs: pathsOf(compilation.output.classesDirs.files),
+                        sourceSets: sourceSets,
+                        associatedCompilations: compilation.associatedCompilations.collect(idOf),
+                        // Android can wire friend binaries without Kotlin compilation associations.
+                        friendPaths: pathsOf(task.friendPaths.files),
+                        javaCompileHome: javaCompiler == null ? null : pathOf(javaCompiler.metadata.installationPath.asFile),
+                        // KGP's public toolchain API does not expose the Kotlin task's resolved JDK home.
+                        // Unset option providers remain null; the Gradle JVM is not a substitute.
+                        compilerOptions: [
+                            languageVersion: options.languageVersion.orNull?.version,
+                            apiVersion: options.apiVersion.orNull?.version,
+                            jvmTarget: options.jvmTarget.orNull?.target,
+                            jvmDefault: options.jvmDefault.orNull?.compilerArgument,
+                            noJdk: options.noJdk.orNull,
+                            javaParameters: options.javaParameters.orNull,
+                            allWarningsAsErrors: options.allWarningsAsErrors.orNull,
+                            suppressWarnings: options.suppressWarnings.orNull,
+                            verbose: options.verbose.orNull,
+                            moduleName: options.moduleName.orNull,
+                            optIn: options.optIn.orNull,
+                            progressiveMode: options.progressiveMode.orNull,
+                            freeCompilerArgs: options.freeCompilerArgs.orNull,
+                        ],
+                        compilerPluginClasspath: pathsOf(task.pluginClasspath.files),
+                        compilerPluginOptions: task.pluginOptions.get().collectMany { config ->
+                            config.allOptions().collectMany { pluginId, pluginOptions ->
+                                pluginOptions.collect { option -> [pluginId: pluginId, key: option.key, value: option.value] }
+                            }
+                        },
+                    ]
+                }
+            }
+            def model = [buildRoot: pathOf(root.projectDir), gradleVersion: gradle.gradleVersion,
+                         gradleJavaHome: pathOf(new File(System.getProperty('java.home'))), compilations: compilations]
+            new File(outputPath).setText(JsonOutput.toJson(model) + '\n', 'UTF-8')
+        }
+    }
+}

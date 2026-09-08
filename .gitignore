@@ -34,3 +34,4 @@ node_modules
 
 # Kotlin Language Server
 .kls/
+.tmp/
