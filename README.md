@@ -9,31 +9,31 @@ it is not the Zyntax app, an extension package, or an Android build manager.
 
 ## Current status
 
-The existing server provides Kotlin completion, hover, diagnostics, navigation
-and other inherited language features. Full modern Kotlin, Android project and
+The existing server's standalone Kotlin completion, hover, definition, diagnostics
+and unsaved corrections passed a focused Android ARM64 USB check. Full modern Kotlin, Android project and
 Gradle Kotlin DSL support are **not yet verified**.
 
-Completed work:
+## Roadmap
 
-- Java 21 server build and pinned dependency license notices.
-- Android ARM64 initialization, SQLite loading and clean LSP shutdown/exit,
+- [x] Java 21 server build and pinned dependency license notices.
+- [x] Android ARM64 initialization, SQLite loading and clean LSP shutdown/exit,
   verified with managed Java 21 on a USB device.
-- Open-document text/version ownership across saves and filesystem events,
+- [x] Open-document text/version ownership across saves and filesystem events,
   plus independent ordinary-source and build-script classpath cache invalidation.
-- An evaluated Gradle importer that keeps compilations and individual script
+- [x] An evaluated Gradle importer that keeps compilations and individual script
   models separate. Its integration into editor analysis is still pending.
+- [x] Verify standalone `.kt` completion, hover, diagnostics and unsaved corrections
+  on Android ARM64 using the server's bundled standard library.
+- [x] Package the verified server as an optional managed tool and update the existing
+  Zyntax Kotlin extension, reusing managed Java 21 and public SDK contracts.
+- [ ] Connect evaluated compilation inputs for dependency-aware project analysis.
+- [ ] Complete the modern analysis-engine replacement and its feature integration.
+- [ ] Verify Gradle Kotlin DSL intelligence with each script's evaluated context.
 
 The separate [modern analysis module](analysis/README.md) passes focused
 host-side live-edit, module-scope and shutdown checks for language/API 1.8 and 2.2.
 It is **not connected to the server**. The full engine replacement is paused
 while initial integration is prioritized; there is no selectable second backend.
-
-## Next steps
-
-1. Verify basic `.kt` completion, hover and diagnostics on USB.
-2. Package the verified server as an optional managed tool, using the existing
-   managed Java runtime, and connect it through the existing Zyntax Kotlin extension.
-3. Improve dependency-aware project analysis and Gradle Kotlin DSL incrementally.
 
 Initial integration uses existing public extension contracts; it does not require
 Kotlin-specific app or SDK code. Server improvements belong in this repository,
@@ -56,6 +56,11 @@ Configure your LSP client to launch
 `server/build/install/server/bin/kotlin-language-server` on Linux/macOS.
 The server uses stdio by default. Keep the entire generated distribution together,
 including its `lib` directory and license files.
+
+Clients that launch Java directly can use
+`java -jar server/build/install/server/lib/server-1.4.0-rc1.jar`.
+The JAR manifest preserves the build's dependency order; do not replace it with
+an unordered `lib/*` classpath.
 
 To create the server ZIP:
 

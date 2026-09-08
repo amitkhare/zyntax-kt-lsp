@@ -44,11 +44,4 @@ class ClassPathResolverBuildFileHashTest {
 
         assertNotEquals(combined1.currentBuildFileVersion, combined2.currentBuildFileVersion)
     }
-
-    @Test fun `FirstNonEmptyClassPathResolver also xors two child hashes`() {
-        val a = FixedHashResolver(0xCAFE_BABE)
-        val b = FixedHashResolver(0xC0FF_EE00)
-        val first = a or b // infix `or` produces FirstNonEmptyClassPathResolver
-        assertEquals(0xCAFE_BABE xor 0xC0FF_EE00, first.currentBuildFileVersion)
-    }
 }

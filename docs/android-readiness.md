@@ -7,10 +7,9 @@ no Kotlin-specific app or SDK code is planned.
 
 ## Checklist
 
-The immediate priority is a focused USB check of basic Kotlin completion, hover
-and diagnostics, followed by optional tool/extension integration using the existing
-server. Full engine replacement and Gradle Kotlin DSL analysis are deferred, not
-prerequisites for that first integration. No app/SDK change is needed for this scope.
+Standalone Kotlin verification and optional tool/extension integration are complete.
+Full engine replacement and Gradle Kotlin DSL analysis remain deferred, not
+prerequisites for that first integration. No app/SDK change was needed for this scope.
 
 - [x] Audit the inherited runtime, classpath importer and Kotlin DSL implementation.
 - [x] Build the baseline on Java 21 and include the root MIT license in distributions.
@@ -32,9 +31,10 @@ prerequisites for that first integration. No app/SDK change is needed for this s
   project compiler settings. Keep module, source-set and variant boundaries explicit.
 - [ ] Use Gradle's per-script model for Kotlin DSL dependencies, imports and generated
   accessors; remove the global cache scan and unsupported template assumptions.
-- [ ] Verify Kotlin source intelligence and Kotlin DSL separately on a USB-connected
-  Android device using app-private managed Java. No UI navigation or terminal installs.
-- [ ] Package the verified server as an optional tool and language extension using
+- [x] Verify standalone Kotlin completion, hover, diagnostics and unsaved corrections
+  on USB Android using app-private managed Java. No UI navigation or terminal installs.
+- [ ] Verify evaluated Android project intelligence and Kotlin DSL separately.
+- [x] Package the verified server as an optional tool and language extension using
   existing public SDK contracts. Record supported versions and remaining limitations.
 
 ## Findings (8 September 2026)
@@ -43,6 +43,16 @@ Baseline: `cc77957`, server `1.4.0-rc1`, Kotlin compiler `2.2.21`, Java 21 build
 
 - Fixed: ordinary and build-script caches now store independent validity fingerprints
   atomically with their results, including valid empty results.
+- Fixed: standalone files use the server's packaged standard library. Ambient
+  `kotlinc`/cache searches, guessed library versions and global shell recovery were
+  removed. Declared project dependencies are not replaced after a failed import.
+  Both focused resolver tests passed; standalone paths are not persisted in SQLite.
+- The packaged launcher passed one USB RMX3710 session with managed Java 21.0.14:
+  SQLite initialization, completion, hover, definition, an unsaved type error and
+  correction, unchanged disk text, shutdown and exit. The generic instrumentation
+  test passed in 64.681 seconds including archive staging. Only the temporary test
+  APK was installed and removed; no UI navigation, terminal install or app-data
+  clearing occurred. Two focused extension packaging checks also passed.
 - Gradle import combines module/variant classpaths and guesses Android output paths.
   Kotlin DSL import scans all cached dependencies instead of resolving each script.
   The replacement [project importer](gradle-project-import.md) is verified as an
@@ -92,10 +102,11 @@ source provenance are in `server/src/main/dist/THIRD-PARTY-NOTICES.md`.
   Preserve their license texts/notices rather than relying on incomplete POM labels.
 - The decompiler's Apache license and embedded compiler components have been
   reconciled against exact source/artifacts, including vendor JNA and JDOM.
-  No binary release has been published by this work.
+  Managed tool distributions retain these notices and license texts.
 
-The compiler also embeds JNA/JLine while separate versions occur in the distribution;
-resolve duplicate classes and assess the native libraries before declaring Android support.
+The compiler also embeds components that overlap separate runtime JARs. The standard
+executable-JAR manifest preserves Gradle's dependency order; packaging does not use
+an unordered wildcard classpath. Broader native and project capabilities remain unverified.
 
 A successful build or LSP startup alone does not establish Android project or Kotlin
 DSL correctness. APK/AAB building and signing remain a separate optional-extension track.
@@ -121,5 +132,6 @@ DSL correctness. APK/AAB building and signing remain a separate optional-extensi
    implicit imports and script errors. Keep Zyntax's project-model file format in
    the extension adapter, not in the editor-independent server.
 
-Validate ordinary Kotlin and Gradle Kotlin DSL independently before packaging.
+Validate and label ordinary Kotlin and Gradle Kotlin DSL independently. Initial
+packaging covers only verified ordinary Kotlin; script syntax does not imply DSL intelligence.
 No new app/SDK capability has been identified for this integration.

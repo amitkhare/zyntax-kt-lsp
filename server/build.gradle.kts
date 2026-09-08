@@ -82,6 +82,13 @@ configurations.forEach { config -> config.resolutionStrategy { preferProjectModu
 
 tasks.startScripts { applicationName = "kotlin-language-server" }
 
+tasks.jar {
+    manifest.attributes(
+        "Main-Class" to serverMainClassName,
+        "Class-Path" to configurations.runtimeClasspath.get().files.joinToString(" ") { it.name },
+    )
+}
+
 tasks.register<Exec>("fixFilePermissions") {
     // When running on macOS or Linux the start script
     // needs executable permissions to run.

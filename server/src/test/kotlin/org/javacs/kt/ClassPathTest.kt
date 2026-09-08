@@ -49,10 +49,6 @@ class ClassPathTest {
         assertThat(classPath, hasItem(containsString("junit")))
     }
 
-    @Test fun `find kotlin stdlib`() {
-        assertThat(findKotlinStdlib(), notNullValue())
-    }
-
     private fun hasGradle(workspaceRoot: Path): Boolean {
         val wrapper = workspaceRoot.resolve("gradlew")
         return (Files.isExecutable(wrapper)) || findCommandOnPath("gradle") != null

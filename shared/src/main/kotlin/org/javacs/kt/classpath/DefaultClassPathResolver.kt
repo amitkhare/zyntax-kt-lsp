@@ -6,6 +6,9 @@ import org.jetbrains.exposed.sql.Database
 import java.nio.file.Path
 import java.nio.file.PathMatcher
 import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.jar.JarFile
 
 private val async = AsyncExecutor
 
@@ -19,12 +22,30 @@ fun defaultClassPathResolver(workspaceRoots: Collection<Path>, db: Database? = n
         workspaceRoots.flatMap { workspaceResolvers(it) }
     }
 
-    val childResolver = WithStdlibResolver(
-        resolvers.joined
-            .or(ShellClassPathResolver.global(workspaceRoots.firstOrNull()))
-    ).or(BackupClassPathResolver)
+    val childResolver = workspaceClassPathResolver(resolvers)
+    if (resolvers.isEmpty()) return childResolver
 
     return db?.let { CachedClassPathResolver(childResolver, it) } ?: childResolver
+}
+
+/** Declared project dependencies are authoritative, including an empty result. */
+internal fun workspaceClassPathResolver(providers: Collection<ClassPathResolver>): ClassPathResolver =
+    if (providers.isEmpty()) StandaloneClassPathResolver else providers.reduce(ClassPathResolver::plus)
+
+private object StandaloneClassPathResolver : ClassPathResolver {
+    override val resolverType = "Standalone Kotlin"
+    override val classpath: Set<ClassPathEntry> by lazy {
+        val location = checkNotNull(Unit::class.java.protectionDomain.codeSource) {
+            "The server's Kotlin standard library must be packaged as a JAR"
+        }.location.toURI()
+        check(location.scheme == "file") { "The Kotlin standard library must be a local JAR" }
+        val jar = Paths.get(location)
+        check(Files.isRegularFile(jar)) { "Missing bundled Kotlin standard library: $jar" }
+        JarFile(jar.toFile()).use {
+            check(it.getJarEntry("kotlin/Unit.class") != null) { "Invalid Kotlin standard library: $jar" }
+        }
+        setOf(ClassPathEntry(jar))
+    }
 }
 
 /** Searches the workspace for all files that could provide classpath info. */

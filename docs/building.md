@@ -30,6 +30,9 @@ To create a ZIP-archive of the language server, run:
 
 >`./gradlew :server:distZip`
 
+Project-built JAR, ZIP and TAR archives use stable entry order and omit source file
+timestamps so identical build inputs can be pinned consistently when packaged.
+
 ### Modern analysis runtime (in progress)
 
 This work is paused and is not required to build or integrate the current server.

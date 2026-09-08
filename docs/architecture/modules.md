@@ -51,9 +51,8 @@ The logic for classpath resolution is in `org/javacs/kt/classpath`. The `ClassPa
 |:---:|---|---|
 |GradleClassPathResolver|For `.gradle` and `.gradle.kts` files|Uses Gradle Tooling API with CLI fallback. Can find source JARs automatically.|
 |MavenClassPathResolver|For `pom.xml` files|Uses the Maven CLI. Can resolve test scope dependencies.|
-|ShellClassPathResolver|For custom scripts|Looks for `kls-classpath` or `kotlinLspClasspath` (executable) in project or `~/.config/kotlin-language-server/`. Outputs classpath entries on stdout.|
-|WithStdlibResolver|Wrapper|Ensures Kotlin stdlib is on the classpath. Picks the newest version if multiple exist.|
-|BackupClassPathResolver|Fallback|Finds Kotlin stdlib from `kotlinc` lib directory, Maven local repo, or Gradle caches. Used when no build file is found.|
+|ShellClassPathResolver|For custom scripts|Discovers executable `kls-classpath` or `kotlinLspClasspath` inside the project. Outputs classpath entries on stdout.|
+|StandaloneClassPathResolver|For standalone files|Uses the validated stdlib JAR shipped with the server only when no project provider is declared.|
 |CachedClassPathResolver|Caching layer|Stores independently fingerprinted classpaths in the workspace's `.kls/kls_database.db`, avoiding re-resolution on every request.|
 
 Here's **how they combine**:
@@ -61,11 +60,9 @@ Here's **how they combine**:
 `DefaultClassPathResolver#defaultClassPathResolver()` creates the resolver chain:
 
 1. Searches the workspace for build files (`.gradle`, `.gradle.kts`, `pom.xml`, scripts)
-2. Joins all found resolvers together
-3. Wraps with `WithStdlibResolver` to ensure stdlib is included
-4. Uses `ShellClassPathResolver.global()` as a fallback
-5. Falls back to `BackupClassPathResolver` if nothing else works
-6. Wraps with `CachedClassPathResolver` for caching when a workspace root is detected
+2. Joins declared providers without changing their dependency identities or substituting a failed result
+3. Uses the bundled standalone classpath only if no providers were declared
+4. Caches declared project classpaths in `CachedClassPathResolver`; the standalone classpath is never persisted
 
 ## `:platform`
 
