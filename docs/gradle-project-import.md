@@ -1,5 +1,10 @@
 # Evaluated Gradle project import
 
+Canonical compilation DTOs live in `project-model/`, shared by the server importer
+and the independent [analysis foundation](../analysis/README.md). The latter now
+accepts an explicitly selected Kotlin-only subset; the editor still uses its
+inherited resolver until the feature-preserving engine cutover.
+
 `importGradleProject(root, gradleJavaHome, output, cancellation)` evaluates one selected
 Gradle build through the Tooling API. It owns and removes its temporary init script
 and JSON result, propagates failures/cancellation, and has no shell or CLI fallback.

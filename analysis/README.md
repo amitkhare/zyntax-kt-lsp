@@ -1,10 +1,9 @@
-# Live analysis foundation — paused
+# Live analysis foundation
 
-This development work is paused while initial integration uses the existing server.
-It is not another selectable backend, and the server does not depend on it.
-Its four host files own the
-project lifecycle, explicit module graph, immutable document snapshots and source
-index. The fixture runner is test-only. No app or SDK code belongs here.
+This independent development module is not connected to the existing server and
+is not a selectable second backend. It owns project lifecycle, explicit module
+graphs, immutable document snapshots and source indexes. The fixture runner is
+test-only. No app or SDK code belongs here.
 
 Use Java 21 and the repository wrapper:
 
@@ -30,13 +29,39 @@ compilation graph; inactive variants remain import data. Fixture runtime discove
 is confined to the test runner. No guessed host-JDK or standard-library dependency
 is added by the engine.
 
+`evaluatedModules` consumes the importer's canonical `project-model` DTOs. Callers
+select `(buildRoot, compilationId)` identities, supply explicit compiler defaults,
+the supported compiler identity and Kotlin-task JDK, and declare source dependency
+edges. Evaluated options override those supplied defaults. Associated compilations
+retain friendship; exact selected dependency outputs become source edges at their
+first evaluated output position, retaining mixed source/binary dependency order.
+Android-style friend outputs also become source friends without requiring a
+compilation association. Each remaining friend binary refers to its exact library
+module, never an aggregate containing unrelated dependencies. Shared source files
+in conflicting selected variants are rejected, not assigned arbitrarily.
+
+The supported input subset is Kotlin `.kt` with compiler 2.2.21 and structured
+language/API/JVM, opt-in and progressive settings. Java sources, scripts, compiler
+plugins and free compiler arguments currently fail explicitly. Missing settings
+also fail: neither the Gradle JVM nor Java compilation toolchain supplies an
+inferred Kotlin JDK. Warning/code-generation options remain in the canonical
+resolved input; request-level diagnostic policy and code generation are later
+server-cutover work. This is not full Android project input support.
+
+The focused lifecycle check covers incremental source addition/removal, dependent
+resolution invalidation and unchanged unrelated PSI. Graph/classpath reimport
+prepares a complete new project generation before publishing it and disposing the
+old one; a failed candidate leaves the previous generation usable. Open text and
+versions survive reimport and edits while their variant is inactive. Explicit document close
+returns ownership to caller-supplied disk text; this module never writes sources.
+
 The Kotlin Analysis API assemblies are pinned to 2.2.21. Their upstream published
 assemblies contain the internal modules still named as unpublished POM dependencies,
 so those POM transitives are not resolved. The engine-only service descriptor is
 loaded through the pinned implementation-detail API; no service replacement,
-no-op document commit, or session rebuild is used to hide unsupported live edits.
+no-op document commit, or session rebuild is used for ordinary edits/add/remove.
 
-Remaining work: dependency redistribution review; add/remove/reimport lifecycle;
-Java sources and per-script template/plugin inputs; feature-preserving server cutover
+Remaining work: dependency redistribution review; Java sources, free compiler
+arguments and per-script template/plugin inputs; feature-preserving server cutover
 with removal of the classic engine. Kotlin DSL and Android execution need their own
 focused verification. Neither is complete yet.

@@ -18,16 +18,17 @@ internal class SnapshotFile(val sourcePath: Path, text: String, version: Long) :
 
 internal data class SourceSnapshot(val path: Path, val version: Long, val file: KtFile)
 
-internal class SourceSnapshots(private val project: Project) {
+internal class SourceSnapshots(private val project: Project, private val versions: Map<Path, Long>) {
     private val entries = linkedMapOf<Path, SourceSnapshot>()
     val files: List<KtFile> get() = entries.values.map { it.file }
     var parseCount = 0
         private set
 
-    operator fun get(path: Path): SourceSnapshot = entries.getValue(path.toAbsolutePath().normalize())
+    operator fun get(path: Path): SourceSnapshot = entries.getValue(canonical(path))
 
     fun parse(path: Path, text: String, version: Long): SourceSnapshot {
-        val canonicalPath = path.toAbsolutePath().normalize()
+        val canonicalPath = canonical(path)
+        require(canonicalPath.fileName.toString().endsWith(".kt")) { "Only Kotlin source files are integrated: $path" }
         val virtualFile = SnapshotFile(canonicalPath, text, version)
         val view = SingleRootFileViewProvider(PsiManager.getInstance(project), virtualFile, true, KotlinFileType.INSTANCE)
         val file = checkNotNull(view.getPsi(KotlinLanguage.INSTANCE) as? KtFile)
@@ -37,4 +38,8 @@ internal class SourceSnapshots(private val project: Project) {
     }
 
     fun publish(snapshot: SourceSnapshot) { entries[snapshot.path] = snapshot }
+
+    fun initial(path: Path, text: String) = parse(path, text, versions.getOrDefault(canonical(path), 0))
+
+    fun remove(path: Path) { entries.remove(canonical(path)) }
 }

@@ -2,6 +2,7 @@
 
 package org.javacs.kt.analysis
 
+import org.javacs.kt.project.GradleCompilerOptions
 import com.intellij.core.CoreApplicationEnvironment
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
@@ -18,33 +19,48 @@ import org.jetbrains.kotlin.analysis.project.structure.builder.KtModuleProviderB
 import org.jetbrains.kotlin.analysis.project.structure.builder.buildKtLibraryModule
 import org.jetbrains.kotlin.analysis.project.structure.builder.buildKtSdkModule
 import org.jetbrains.kotlin.config.LanguageVersionSettings
+import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.platform.jvm.JvmPlatforms
 import java.nio.file.Path
+
+internal sealed interface ModuleDependency {
+    data class Source(val name: String) : ModuleDependency
+    data class Binary(val path: Path) : ModuleDependency
+}
+
+internal fun ModuleDependency.normalized(): ModuleDependency = when (this) {
+    is ModuleDependency.Source -> this
+    is ModuleDependency.Binary -> copy(path = canonical(path))
+}
 
 internal data class SourceModuleSpec(
     val name: String,
     val files: Map<Path, String>,
-    val regularDependencies: List<String>,
-    val friendDependencies: List<String>,
-    /** Null deliberately omits the JDK; target boot classes then belong in binaryClasspath. */
+    val dependencies: List<ModuleDependency>,
+    val friends: List<ModuleDependency>,
+    /** Null deliberately omits the JDK; target boot classes then belong in binary dependencies. */
     val jdkHome: Path?,
-    val binaryClasspath: List<Path>,
     val language: LanguageVersionSettings,
+    val jvmTarget: JvmTarget,
+    val stableName: String = name,
+    /** Retained for request-level diagnostic policy; code generation is not part of this module. */
+    val compilerOptions: GradleCompilerOptions? = null,
 )
 
 internal class SourceModule(
     override val project: Project,
     override val name: String,
-    val paths: Set<Path>,
+    val paths: MutableSet<Path>,
     override val directRegularDependencies: List<KaModule>,
     override val directFriendDependencies: List<KaModule>,
     override val languageVersionSettings: LanguageVersionSettings,
     private val snapshots: SourceSnapshots,
+    jvmTarget: JvmTarget,
+    override val stableModuleName: String,
 ) : KaModuleBase(), KaSourceModule {
-    override val targetPlatform = JvmPlatforms.defaultJvmPlatform
+    override val targetPlatform = JvmPlatforms.jvmPlatformByTargetVersion(jvmTarget)
     override val directDependsOnDependencies = emptyList<KaModule>()
     override val psiRoots: List<PsiFileSystemItem> get() = paths.map { snapshots[it].file }
-    override val stableModuleName: String get() = name
     override val baseContentScope = object : GlobalSearchScope(project) {
         override fun contains(file: VirtualFile): Boolean = file is SnapshotFile && file.sourcePath in paths
         override fun isSearchInModuleContent(module: com.intellij.openapi.module.Module): Boolean = true
@@ -70,7 +86,7 @@ internal class ProjectModules(
         val definitions = specs.associateBy { it.name }
         require(definitions.size == specs.size) { "Duplicate module identity" }
         val sdks = hashMapOf<Path, KaLibraryModule>()
-        val libraries = hashMapOf<List<Path>, KaLibraryModule>()
+        val libraries = hashMapOf<Path, KaLibraryModule>()
         val visiting = linkedSetOf<String>()
 
         fun create(name: String): SourceModule {
@@ -78,11 +94,13 @@ internal class ProjectModules(
             val spec = requireNotNull(definitions[name]) { "Unknown module dependency: $name" }
             require(name.isNotBlank()) { "Empty module identity" }
             require(visiting.add(name)) { "Cyclic module dependencies: ${visiting.joinToString(" -> ")} -> $name" }
-            for (dependencies in listOf(spec.regularDependencies, spec.friendDependencies)) {
-                require(dependencies.size == dependencies.toSet().size) { "Duplicate dependency in module $name" }
+            require(spec.jvmTarget in JvmTarget.supportedValues()) { "Unsupported JVM target: ${spec.jvmTarget}" }
+            val dependencies = spec.dependencies.map { it.normalized() }
+            val friendDependencies = spec.friends.map { it.normalized() }
+            for (references in listOf(dependencies, friendDependencies)) {
+                require(references.size == references.toSet().size) { "Duplicate dependency in module $name" }
             }
-            val regular = spec.regularDependencies.map(::create)
-            val friends = spec.friendDependencies.map(::create)
+            require(friendDependencies.all { it in dependencies }) { "Friends must be regular dependencies in module $name" }
             val sdk = spec.jdkHome?.let { home ->
                 require(home.isAbsolute) { "JDK home must be absolute: $home" }
                 sdks.getOrPut(home.normalize()) {
@@ -93,22 +111,27 @@ internal class ProjectModules(
                     })
                 }
             }
-            val roots = spec.binaryClasspath.map { root ->
-                require(root.isAbsolute) { "Binary classpath must be absolute: $root" }
-                root.normalize()
-            }
-            val binaries = if (roots.isEmpty()) null else libraries.getOrPut(roots) {
+            fun library(root: Path) = libraries.getOrPut(root) {
                 builder.addModule(builder.buildKtLibraryModule {
-                    libraryName = "classpath:$name"
+                    libraryName = "binary:$root"
                     platform = JvmPlatforms.defaultJvmPlatform
-                    roots.forEach(::addBinaryRoot)
+                    addBinaryRoot(root)
                 })
             }
-            val paths = spec.files.keys.mapTo(linkedSetOf()) { it.toAbsolutePath().normalize() }
+            val dependencyModules = dependencies.associateWith { dependency ->
+                when (dependency) {
+                    is ModuleDependency.Source -> create(dependency.name)
+                    is ModuleDependency.Binary -> library(dependency.path)
+                }
+            }
+            val regular = dependencies.map(dependencyModules::getValue)
+            val friends = friendDependencies.map(dependencyModules::getValue)
+            val paths = spec.files.keys.mapTo(linkedSetOf(), ::canonical)
             val module = SourceModule(project, spec.name, paths,
-                listOfNotNull(sdk, binaries) + regular, friends, spec.language, snapshots)
+                listOfNotNull(sdk) + regular, friends,
+                spec.language, snapshots, spec.jvmTarget, spec.stableName)
             for ((path, text) in spec.files) {
-                val snapshot = snapshots.parse(path, text, 0)
+                val snapshot = snapshots.initial(path, text)
                 require(snapshot.path !in owners) { "Ambiguous source ownership: ${snapshot.path}" }
                 owners[snapshot.path] = module
                 snapshots.publish(snapshot)
@@ -120,6 +143,17 @@ internal class ProjectModules(
         }
         specs.forEach { create(it.name) }
         binaryRouting = builder.build()
+    }
+
+    fun sourceModule(name: String): SourceModule = sourceModules.getValue(name)
+    fun contains(path: Path): Boolean = canonical(path) in owners
+    fun owner(path: Path): SourceModule = owners.getValue(canonical(path))
+    fun add(module: SourceModule, path: Path) {
+        module.paths.add(canonical(path))
+        owners[canonical(path)] = module
+    }
+    fun remove(path: Path) {
+        owners.remove(canonical(path))!!.paths.remove(canonical(path))
     }
 
     override fun getModule(element: PsiElement, useSiteModule: KaModule?): KaModule {

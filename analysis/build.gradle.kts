@@ -8,6 +8,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":project-model"))
     implementation(files(providers.gradleProperty("analysisCompilerJar")))
     implementation(kotlin("stdlib-jdk8"))
     implementation(kotlin("script-runtime"))

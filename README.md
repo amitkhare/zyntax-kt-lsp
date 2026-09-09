@@ -22,6 +22,8 @@ Gradle Kotlin DSL support are **not yet verified**.
   plus independent ordinary-source and build-script classpath cache invalidation.
 - [x] An evaluated Gradle importer that keeps compilations and individual script
   models separate. Its integration into editor analysis is still pending.
+- [x] Independent modern workspace lifecycle and selected evaluated-compilation
+  inputs, with host checks for reimport, open text and module/friend/settings isolation.
 - [x] Verify standalone `.kt` completion, hover, diagnostics and unsaved corrections
   on Android ARM64 using the server's bundled standard library.
 - [x] Package the verified server as an optional managed tool and update the existing
@@ -32,8 +34,9 @@ Gradle Kotlin DSL support are **not yet verified**.
 
 The separate [modern analysis module](analysis/README.md) passes focused
 host-side live-edit, module-scope and shutdown checks for language/API 1.8 and 2.2.
-It is **not connected to the server**. The full engine replacement is paused
-while initial integration is prioritized; there is no selectable second backend.
+It is **not connected to the server**. Its evaluated-input subset explicitly rejects
+Java, scripts, compiler plugins and free compiler arguments. Full feature-preserving
+engine replacement remains pending; there is no selectable second backend.
 
 Initial integration uses existing public extension contracts; it does not require
 Kotlin-specific app or SDK code. Server improvements belong in this repository,
@@ -76,8 +79,9 @@ See [building](docs/building.md) for development details.
 
 - `server/`: executable language server and distribution notices.
 - `shared/`: project import, classpath resolution and shared utilities.
+- `project-model/`: canonical evaluated compilation DTOs shared by importer and analysis.
 - `platform/`: dependency constraints.
-- `analysis/`: deferred modern-engine work, separate from the server build.
+- `analysis/`: modern-engine development, separate from the server build.
 
 [Configuration](docs/configuration.md) ·
 [Gradle project import](docs/gradle-project-import.md) ·

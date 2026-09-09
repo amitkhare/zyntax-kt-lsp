@@ -8,7 +8,7 @@ no Kotlin-specific app or SDK code is planned.
 ## Checklist
 
 Standalone Kotlin verification and optional tool/extension integration are complete.
-Full engine replacement and Gradle Kotlin DSL analysis remain deferred, not
+Full engine replacement and Gradle Kotlin DSL analysis remain incomplete, not
 prerequisites for that first integration. No app/SDK change was needed for this scope.
 
 - [x] Audit the inherited runtime, classpath importer and Kotlin DSL implementation.
@@ -25,6 +25,9 @@ prerequisites for that first integration. No app/SDK change was needed for this 
   reject duplicate/out-of-order document changes.
 - [x] Implement and verify evaluated Gradle compilation and per-script import on the
   fork's JVM build and the supplied Kotlin-DSL Android sample.
+- [x] Extend the independent modern analysis foundation with source add/remove,
+  transactional reimport and selected evaluated-compilation inputs; verify host-side
+  open-text, module/friend and compiler-setting isolation without changing the editor engine.
 - [ ] Replace classic compiler analysis with a coherent modern analysis engine;
   keep compilation and script contexts separate, without parallel legacy engines.
 - [ ] Replace guessed/global Gradle classpaths with evaluated compilation inputs and
@@ -86,7 +89,9 @@ Baseline: `cc77957`, server `1.4.0-rc1`, Kotlin compiler `2.2.21`, Java 21 build
 
 ## Redistribution review
 
-The current distribution contains 40 third-party JARs plus the server/shared JARs.
+The published distribution contains 40 third-party JARs plus the server/shared JARs.
+The development build additionally separates the existing compilation DTOs into the
+project-owned `project-model` JAR; this adds no third-party runtime dependency.
 The license reporter also includes compile-only dependencies; its POM report is
 evidence, not a complete inventory of shipped or embedded code. Exact notices and
 source provenance are in `server/src/main/dist/THIRD-PARTY-NOTICES.md`.
@@ -111,7 +116,24 @@ an unordered wildcard classpath. Broader native and project capabilities remain 
 A successful build or LSP startup alone does not establish Android project or Kotlin
 DSL correctness. APK/AAB building and signing remain a separate optional-extension track.
 
-## Deferred modern-analysis work
+## Modern foundation update (9 September 2026)
+
+The [analysis module](../analysis/README.md) now consumes the same compilation DTOs
+as the evaluated importer through an explicit selected-graph boundary. It preserves
+ordered binary dependencies, exact binary/source friends, stable compiler module
+names and per-module language/API/JVM settings. Source add/remove is incremental;
+graph/classpath reimport replaces one complete project generation and retains open
+text/version, including across inactive variants. Failed reimport preserves the
+active project. These focused checks are host-only, not a new USB verification.
+
+The input subset requires explicit missing compiler defaults and Kotlin-task JDK.
+Java sources, scripts, compiler plugins and free compiler arguments are rejected
+until their semantic integration exists. Source dependencies are explicit, not
+inferred from matching filenames or merged classpaths. The classic editor engine
+and inherited global Gradle resolver remain unchanged, so the unchecked editor
+integration and Android/Kotlin-DSL intelligence items above remain unchecked.
+
+## Remaining modern-analysis work
 
 1. Import evaluated builds, compilations and individual scripts. Preserve ordered
    dependencies, source roots, compiler settings, friend compilations and build identity;

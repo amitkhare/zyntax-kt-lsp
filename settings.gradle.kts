@@ -9,6 +9,7 @@ rootProject.name = "ktlsp"
 
 include(
     "platform",
+    "project-model",
     "shared",
     "server"
 )

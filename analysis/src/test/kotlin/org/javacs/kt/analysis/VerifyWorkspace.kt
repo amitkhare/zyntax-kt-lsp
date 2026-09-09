@@ -13,6 +13,7 @@ import org.jetbrains.kotlin.analysis.api.standalone.disposeGlobalStandaloneAppli
 import org.jetbrains.kotlin.config.ApiVersion
 import org.jetbrains.kotlin.config.LanguageVersion
 import org.jetbrains.kotlin.config.LanguageVersionSettingsImpl
+import org.jetbrains.kotlin.config.JvmTarget
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.findDescendantOfType
@@ -20,9 +21,9 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.system.exitProcess
 
-private data class Snapshot(val target: String?, val errors: List<String>)
+internal data class Snapshot(val target: String?, val errors: List<String>)
 
-private fun inspect(file: KtFile): Snapshot = analyze(file) {
+internal fun inspect(file: KtFile): Snapshot = analyze(file) {
     val call = checkNotNull(file.findDescendantOfType<KtCallExpression>())
     val target = call.resolveToCall()?.successfulFunctionCallOrNull()?.symbol?.callableId?.asSingleFqName()?.asString()
     val errors = file.collectDiagnostics(KaDiagnosticCheckerFilter.ONLY_COMMON_CHECKERS)
@@ -51,6 +52,8 @@ private fun runProbe(args: Array<String>) {
     val fixtureJdkHome = Paths.get(System.getProperty("java.home"))
     val fixtureClasspath = listOf(Paths.get(Unit::class.java.protectionDomain.codeSource.location.toURI()))
     try {
+        verifyLifecycle(root, fixtureJdkHome, fixtureClasspath)
+        verifyGradleInputs(root, fixtureJdkHome, fixtureClasspath)
         for ((languageVersion, apiVersion) in listOf(
             LanguageVersion.KOTLIN_1_8 to ApiVersion.KOTLIN_1_8,
             LanguageVersion.KOTLIN_2_2 to ApiVersion.KOTLIN_2_2,
@@ -58,10 +61,12 @@ private fun runProbe(args: Array<String>) {
             println("Kotlin language/API $languageVersion")
             val language = LanguageVersionSettingsImpl(languageVersion, apiVersion)
             FirWorkspace(listOf(
-            SourceModuleSpec("app", mapOf(appPath to originalApp), listOf("library"), emptyList(),
-                fixtureJdkHome, fixtureClasspath, language),
-            SourceModuleSpec("library", mapOf(libraryPath to originalLibrary), emptyList(), emptyList(),
-                fixtureJdkHome, fixtureClasspath, language),
+            SourceModuleSpec("app", mapOf(appPath to originalApp),
+                listOf(ModuleDependency.Source("library")) + fixtureClasspath.map { ModuleDependency.Binary(it) },
+                emptyList(), fixtureJdkHome, language, JvmTarget.JVM_1_8),
+            SourceModuleSpec("library", mapOf(libraryPath to originalLibrary),
+                fixtureClasspath.map { ModuleDependency.Binary(it) }, emptyList(),
+                fixtureJdkHome, language, JvmTarget.JVM_1_8),
         )).use { workspace ->
             fun verified(label: String, target: String) {
                 val result = workspace.read(appPath, ::inspect)

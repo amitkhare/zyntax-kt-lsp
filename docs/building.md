@@ -35,7 +35,7 @@ timestamps so identical build inputs can be pinned consistently when packaged.
 
 ### Modern analysis runtime (in progress)
 
-This work is paused and is not required to build or integrate the current server.
+This independent development build is not required to build the current server.
 
 The standalone Analysis API needs an intact IntelliJ runtime. The published Kotlin
 2.2.21 CLI compiler has removed a shutdown API through ProGuard; adding overlapping

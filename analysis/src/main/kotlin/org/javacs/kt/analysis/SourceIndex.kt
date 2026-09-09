@@ -45,16 +45,22 @@ internal class SourceIndex(private val project: Project, files: List<KtFile>) {
 
     fun publish(entry: Entry) {
         val path = (entry.file.virtualFile as SnapshotFile).sourcePath
-        entries.put(path, entry)?.let { old ->
+        remove(path)
+        entries[path] = entry
+        packages.getOrPut(entry.file.packageFqName) { linkedMapOf() }[path] = entry
+        updatePackage(entry.file, add = true)
+        generation++
+    }
+
+    fun remove(path: Path) {
+        entries.remove(path)?.let { old ->
             updatePackage(old.file, add = false)
             packages.getValue(old.file.packageFqName).let { bucket ->
                 bucket.remove(path)
                 if (bucket.isEmpty()) packages.remove(old.file.packageFqName)
             }
+            generation++
         }
-        packages.getOrPut(entry.file.packageFqName) { linkedMapOf() }[path] = entry
-        updatePackage(entry.file, add = true)
-        generation++
     }
 
     private fun updatePackage(file: KtFile, add: Boolean) {

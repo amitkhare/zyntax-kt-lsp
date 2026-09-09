@@ -42,6 +42,7 @@ dependencies {
     annotationProcessor(platform(project(":platform")))
 
     implementation(project(":shared"))
+    implementation(project(":project-model"))
 
     implementation(libs.org.eclipse.lsp4j.lsp4j)
     implementation(libs.org.eclipse.lsp4j.jsonrpc)
